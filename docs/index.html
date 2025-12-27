@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Puzzle Box Generator</title>
+    <title>Puzzle Box - MakerWorld Path Generator</title>
     <style>
         :root {
             --bg: #1a1a2e;
@@ -28,7 +28,7 @@
         }
         
         .container {
-            max-width: 900px;
+            max-width: 800px;
             margin: 0 auto;
         }
         
@@ -67,7 +67,7 @@
         
         .form-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
             gap: 15px;
         }
         
@@ -83,7 +83,6 @@
         }
         
         input[type="number"],
-        input[type="text"],
         select {
             background: var(--input-bg);
             border: 1px solid #333;
@@ -98,32 +97,26 @@
             border-color: var(--accent);
         }
         
-        input[type="checkbox"] {
-            width: 20px;
-            height: 20px;
-            accent-color: var(--accent);
-        }
-        
-        .checkbox-group {
-            flex-direction: row;
-            align-items: center;
+        .seed-refresh {
+            display: flex;
             gap: 10px;
         }
         
-        .buttons {
-            display: flex;
-            gap: 15px;
-            justify-content: center;
-            margin-top: 30px;
-            flex-wrap: wrap;
+        .seed-refresh input {
+            flex: 1;
+        }
+        
+        .seed-refresh button {
+            padding: 10px 15px;
+            font-size: 0.9rem;
         }
         
         button {
             background: var(--accent);
             color: white;
             border: none;
-            padding: 15px 40px;
-            font-size: 1.1rem;
+            padding: 12px 25px;
+            font-size: 1rem;
             border-radius: 8px;
             cursor: pointer;
             transition: transform 0.2s, box-shadow 0.2s;
@@ -138,17 +131,49 @@
             background: var(--input-bg);
         }
         
-        .preview {
+        .path-output {
             background: #0a0a15;
+            border: 2px solid var(--accent);
             border-radius: 8px;
             padding: 15px;
-            margin-top: 20px;
-            font-family: 'Fira Code', monospace;
-            font-size: 0.8rem;
-            max-height: 300px;
-            overflow: auto;
-            white-space: pre-wrap;
+            font-family: 'Fira Code', 'Consolas', monospace;
+            font-size: 1.1rem;
             color: #7fdbca;
+            word-break: break-all;
+            min-height: 60px;
+            margin: 15px 0;
+        }
+        
+        .path-info {
+            font-size: 0.9rem;
+            color: #aaa;
+            margin-bottom: 15px;
+        }
+        
+        .buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .info-box {
+            background: #1e3a5f;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid var(--accent);
+        }
+        
+        .info-box ol {
+            margin: 10px 0 0 20px;
+        }
+        
+        .info-box li {
+            margin: 5px 0;
+        }
+        
+        .info-box a {
+            color: var(--accent);
         }
         
         footer {
@@ -163,22 +188,13 @@
             text-decoration: none;
         }
         
-        .info {
-            background: #1e3a5f;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            border-left: 4px solid var(--accent);
+        .highlight {
+            background: linear-gradient(135deg, #1e3a5f 0%, #16213e 100%);
+            border: 2px solid var(--accent);
         }
         
-        .seed-refresh {
-            display: flex;
-            gap: 10px;
-        }
-        
-        .seed-refresh button {
-            padding: 10px 15px;
-            font-size: 0.9rem;
+        .copied {
+            background: #27ae60 !important;
         }
     </style>
 </head>
@@ -186,675 +202,271 @@
     <div class="container">
         <header>
             <h1>🎁 Puzzle Box Generator</h1>
-            <p class="subtitle">Create customized maze puzzle boxes for 3D printing</p>
+            <p class="subtitle">Generate maze paths for MakerWorld parametric puzzle boxes</p>
         </header>
         
-        <div class="info">
-            <strong>How it works:</strong> 
-            <ol style="margin-top: 10px; margin-left: 20px;">
-                <li><strong>For MakerWorld:</strong> Click "Generate Path" → Copy the path string → Paste into MakerWorld's parametric input</li>
-                <li><strong>For local use:</strong> Download the full OpenSCAD file and open in <a href="https://openscad.org/downloads.html" target="_blank">OpenSCAD</a></li>
+        <div class="info-box">
+            <strong>How to use:</strong>
+            <ol>
+                <li>Configure your puzzle parameters below</li>
+                <li>Click <strong>"🎲 Generate Path"</strong> to create a random maze</li>
+                <li>Click <strong>"📋 Copy Path"</strong> to copy it</li>
+                <li>Go to <a href="https://makerworld.com/en/makerlab/parametricModelMaker" target="_blank">MakerWorld</a> and paste into the <code>path_data</code> parameter</li>
             </ol>
         </div>
         
-        <form id="puzzleForm">
-            <div class="card">
-                <h2>📐 Dimensions</h2>
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label>Core Diameter (mm)</label>
-                        <input type="number" id="core_diameter" value="30" min="15" max="80" step="1">
-                    </div>
-                    <div class="form-group">
-                        <label>Core Height (mm)</label>
-                        <input type="number" id="core_height" value="50" min="20" max="150" step="1">
-                    </div>
-                    <div class="form-group">
-                        <label>Number of Parts</label>
-                        <select id="num_parts">
-                            <option value="2" selected>2 parts</option>
-                            <option value="3">3 parts</option>
-                            <option value="4">4 parts</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Outer Shape</label>
-                        <select id="outer_sides">
-                            <option value="0">Round</option>
-                            <option value="6">Hexagon</option>
-                            <option value="7" selected>Heptagon</option>
-                            <option value="8">Octagon</option>
-                            <option value="10">Decagon</option>
-                        </select>
+        <div class="card">
+            <h2>📐 Puzzle Settings</h2>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Maze Seed</label>
+                    <div class="seed-refresh">
+                        <input type="number" id="maze_seed" value="42" min="1" max="9999">
+                        <button type="button" onclick="randomSeed()">🎲</button>
                     </div>
                 </div>
+                <div class="form-group">
+                    <label>Maze Columns</label>
+                    <select id="maze_columns">
+                        <option value="6">6 (Easy)</option>
+                        <option value="8" selected>8 (Medium)</option>
+                        <option value="10">10 (Hard)</option>
+                        <option value="12">12 (Very Hard)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Maze Rows</label>
+                    <select id="maze_rows">
+                        <option value="8">8 (Short)</option>
+                        <option value="12" selected>12 (Medium)</option>
+                        <option value="16">16 (Tall)</option>
+                        <option value="20">20 (Very Tall)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Complexity</label>
+                    <select id="complexity">
+                        <option value="1">Simple (mostly up)</option>
+                        <option value="3" selected>Medium (some turns)</option>
+                        <option value="5">Complex (many turns)</option>
+                        <option value="7">Very Complex</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card highlight">
+            <h2>🎯 Generated Path</h2>
+            <div class="buttons">
+                <button type="button" onclick="generatePath()">🎲 Generate Path</button>
             </div>
             
-            <div class="card">
-                <h2>🔀 Maze Settings</h2>
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label>Maze Seed (random pattern)</label>
-                        <div class="seed-refresh">
-                            <input type="number" id="maze_seed" value="42" min="1" max="9999">
-                            <button type="button" onclick="randomSeed()">🎲</button>
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label>Helix Turns</label>
-                        <select id="helix">
-                            <option value="0">0 (straight)</option>
-                            <option value="1">1</option>
-                            <option value="2" selected>2</option>
-                            <option value="3">3</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Maze Step (mm)</label>
-                        <input type="number" id="maze_step" value="3" min="2" max="5" step="0.5">
-                    </div>
-                    <div class="form-group">
-                        <label>Maze Complexity</label>
-                        <select id="maze_complexity">
-                            <option value="-5">Very Easy</option>
-                            <option value="0">Easy</option>
-                            <option value="5" selected>Medium</option>
-                            <option value="8">Hard</option>
-                            <option value="10">Very Hard</option>
-                        </select>
-                    </div>
-                </div>
-            </div>
+            <div id="pathOutput" class="path-output">Click "Generate Path" to create a maze...</div>
             
-            <div class="card">
-                <h2>⚙️ Structure</h2>
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label>Wall Thickness (mm)</label>
-                        <input type="number" id="wall_thickness" value="1.2" min="0.8" max="2.5" step="0.1">
-                    </div>
-                    <div class="form-group">
-                        <label>Maze Thickness (mm)</label>
-                        <input type="number" id="maze_thickness" value="2" min="1.5" max="3" step="0.1">
-                    </div>
-                    <div class="form-group">
-                        <label>Base Height (mm)</label>
-                        <input type="number" id="base_height" value="10" min="5" max="20" step="1">
-                    </div>
-                    <div class="form-group">
-                        <label>Clearance (mm)</label>
-                        <input type="number" id="clearance" value="0.4" min="0.2" max="0.6" step="0.05">
-                    </div>
-                    <div class="form-group checkbox-group">
-                        <input type="checkbox" id="resin_mode">
-                        <label for="resin_mode">Resin Printing (tighter tolerances)</label>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="card">
-                <h2>✏️ Personalization</h2>
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label>Text on Lid</label>
-                        <input type="text" id="text_end" placeholder="e.g., AB" maxlength="10">
-                    </div>
-                    <div class="form-group">
-                        <label>Text Depth (mm)</label>
-                        <input type="number" id="text_depth" value="0.5" min="0.2" max="1.5" step="0.1">
-                    </div>
-                </div>
-            </div>
-            
-            <div class="card" style="background: linear-gradient(135deg, #1e3a5f 0%, #16213e 100%); border: 2px solid var(--accent);">
-                <h2>🎯 MakerWorld Path Generator</h2>
-                <p style="margin-bottom: 15px; color: #aaa;">Generate a random maze path, then copy and paste into MakerWorld's parametric input.</p>
-                <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
-                    <button type="button" onclick="generatePath()" style="flex-shrink: 0;">🎲 Generate Path</button>
-                    <input type="text" id="pathOutput" readonly placeholder="Click 'Generate Path' to create a maze path..." 
-                           style="flex: 1; min-width: 200px; font-family: 'Fira Code', monospace; font-size: 0.9rem;">
-                    <button type="button" class="secondary" onclick="copyPath()" style="flex-shrink: 0;">📋 Copy</button>
-                </div>
-                <div id="pathInfo" style="margin-top: 10px; font-size: 0.85rem; color: #7fdbca;"></div>
-            </div>
+            <div id="pathInfo" class="path-info"></div>
             
             <div class="buttons">
-                <button type="button" onclick="generateAndDownload()">⬇️ Download Full OpenSCAD</button>
-                <button type="button" onclick="downloadMakerWorldTemplate()" style="background: #1976D2;">🌐 Download MakerWorld Template</button>
-                <button type="button" class="secondary" onclick="showPreview()">👁️ Preview Code</button>
+                <button type="button" id="copyBtn" onclick="copyPath()">📋 Copy Path</button>
+                <button type="button" class="secondary" onclick="downloadTemplate()">⬇️ Download SCAD Template</button>
             </div>
-        </form>
-        
-        <div id="previewContainer" class="card" style="display:none;">
-            <h2>Code Preview</h2>
-            <pre class="preview" id="codePreview"></pre>
         </div>
         
         <footer>
-            <p>Based on <a href="https://github.com/revk/PuzzleBox">RevK's PuzzleBox</a></p>
-            <p>Generate unique maze puzzle boxes for 3D printing</p>
+            <p>Based on <a href="https://github.com/revk/PuzzleBox" target="_blank">RevK's PuzzleBox</a></p>
+            <p>Upload the SCAD template to MakerWorld with BOSL2 library</p>
         </footer>
     </div>
     
     <script>
-        function getFormValues() {
-            return {
-                core_diameter: document.getElementById('core_diameter').value,
-                core_height: document.getElementById('core_height').value,
-                num_parts: document.getElementById('num_parts').value,
-                outer_sides: document.getElementById('outer_sides').value,
-                maze_seed: document.getElementById('maze_seed').value,
-                helix: document.getElementById('helix').value,
-                maze_step: document.getElementById('maze_step').value,
-                maze_complexity: document.getElementById('maze_complexity').value,
-                wall_thickness: document.getElementById('wall_thickness').value,
-                maze_thickness: document.getElementById('maze_thickness').value,
-                base_height: document.getElementById('base_height').value,
-                clearance: document.getElementById('clearance').value,
-                resin_mode: document.getElementById('resin_mode').checked,
-                text_end: document.getElementById('text_end').value,
-                text_depth: document.getElementById('text_depth').value
-            };
-        }
-        
         function randomSeed() {
             document.getElementById('maze_seed').value = Math.floor(Math.random() * 9999) + 1;
+            generatePath();
         }
         
-        // Generate a random maze path string for MakerWorld
+        function seededRandom(seed) {
+            const x = Math.sin(seed) * 10000;
+            return x - Math.floor(x);
+        }
+        
         function generatePath() {
-            const v = getFormValues();
-            const cols = Math.max(6, Math.floor(Math.PI * v.core_diameter / v.maze_step));
-            const rows = Math.max(8, Math.floor((v.core_height - v.base_height) / v.maze_step));
-            const complexity = parseInt(v.maze_complexity);
-            const seed = parseInt(v.maze_seed);
-            
-            // Seeded random generator
-            function seededRandom(s) {
-                const x = Math.sin(s) * 10000;
-                return x - Math.floor(x);
-            }
+            const seed = parseInt(document.getElementById('maze_seed').value) || 42;
+            const cols = parseInt(document.getElementById('maze_columns').value) || 8;
+            const rows = parseInt(document.getElementById('maze_rows').value) || 12;
+            const complexity = parseInt(document.getElementById('complexity').value) || 3;
             
             let path = "";
             let col = Math.floor(seededRandom(seed) * cols);
             let row = 0;
             let currentSeed = seed;
-            let pathLength = 0;
             
-            // Start from bottom, work up to top
-            while (row < rows - 1) {
+            while (row < rows - 1 && path.length < rows * 4) {
                 currentSeed++;
-                const rand = seededRandom(currentSeed) * 100;
+                const rand = seededRandom(currentSeed) * 10;
                 
-                // Higher complexity = more horizontal moves
-                const threshold = 15 + Math.abs(complexity) * 2;
-                
-                if (rand < threshold && col > 0) {
+                if (rand < complexity && col > 0) {
                     path += "L";
                     col--;
-                } else if (rand < threshold * 2 && col < cols - 1) {
+                } else if (rand < complexity * 2 && col < cols - 1) {
                     path += "R";
                     col++;
                 } else {
                     path += "U";
                     row++;
                 }
-                pathLength++;
                 
-                // Add some dead-ends/backtracking for complexity
-                if (complexity > 0 && seededRandom(currentSeed + 1000) < complexity / 20) {
-                    const backRand = seededRandom(currentSeed + 2000);
-                    if (backRand < 0.5 && row > 1) {
-                        path += "D";
-                        row--;
-                        pathLength++;
-                    }
+                // Add backtracking for more complexity
+                if (complexity > 3 && seededRandom(currentSeed + 500) < 0.15 && row > 1) {
+                    path += "D";
+                    row--;
                 }
-                
-                // Safety limit
-                if (pathLength > rows * 4) break;
             }
             
-            document.getElementById('pathOutput').value = path;
+            // Ensure we reach the top
+            while (row < rows - 1) {
+                path += "U";
+                row++;
+            }
+            
+            document.getElementById('pathOutput').textContent = path;
             document.getElementById('pathInfo').innerHTML = 
-                `<strong>Path length:</strong> ${path.length} moves | ` +
-                `<strong>Grid:</strong> ${cols} cols × ${rows} rows | ` +
+                `<strong>Path:</strong> ${path.length} moves | ` +
+                `<strong>Grid:</strong> ${cols} × ${rows} | ` +
                 `<strong>Seed:</strong> ${seed}`;
         }
         
         function copyPath() {
-            const pathInput = document.getElementById('pathOutput');
-            if (!pathInput.value) {
+            const path = document.getElementById('pathOutput').textContent;
+            if (!path || path.includes('Click')) {
                 alert('Generate a path first!');
                 return;
             }
-            navigator.clipboard.writeText(pathInput.value).then(() => {
-                const btn = event.target;
+            
+            navigator.clipboard.writeText(path).then(() => {
+                const btn = document.getElementById('copyBtn');
                 btn.textContent = '✓ Copied!';
-                setTimeout(() => btn.textContent = '📋 Copy', 2000);
+                btn.classList.add('copied');
+                setTimeout(() => {
+                    btn.textContent = '📋 Copy Path';
+                    btn.classList.remove('copied');
+                }, 2000);
             });
         }
         
-        function downloadMakerWorldTemplate() {
-            // Auto-generate path if not already done
-            let path = document.getElementById('pathOutput').value;
-            if (!path) {
-                generatePath();
-                path = document.getElementById('pathOutput').value;
-            }
+        function downloadTemplate() {
+            const path = document.getElementById('pathOutput').textContent;
+            const pathData = (!path || path.includes('Click')) ? 'UUUURRUUULLUUURRUU' : path;
+            const cols = document.getElementById('maze_columns').value;
             
-            const v = getFormValues();
-            const template = `// Puzzle Box - MakerWorld Parametric Version
-// Compatible with MakerWorld Parametric Model Maker
-// Generated: ${new Date().toISOString()}
+            const template = `// Puzzle Box for MakerWorld
+// Paste your generated path into path_data parameter
+// Uses BOSL2 library
 
-include <BOSL2/*.scad>;
+include <BOSL2/std.scad>;
 
-/* [Puzzle Parameters] */
-// Paste the maze path string here (from website generator)
-path_data = "${path}"; // Generated path
-
-// Random seed for variations
-random_seed = ${v.maze_seed}; // [1:999]
+/* [Maze Path] */
+// Paste the generated path string here
+path_data = "${pathData}";
 
 /* [Dimensions] */
-// Outer diameter of the puzzle box
-outer_diameter = ${v.core_diameter}; // [30:80]
-
-// Total height of the puzzle box
-total_height = ${v.core_height}; // [40:100]
-
-// Wall thickness
-wall_thickness = ${v.wall_thickness}; // [1.5:0.5:4]
+outer_diameter = 40; // [30:80]
+total_height = 50; // [40:100]
+wall_thickness = 2; // [1.5:0.5:4]
 
 /* [Maze Settings] */
-// Number of columns in the maze
-maze_columns = 8; // [4:16]
-
-// Step height for each maze row (mm)
-maze_step = ${v.maze_step}; // [2:0.5:8]
-
-// Maze groove depth
+maze_columns = ${cols}; // [4:16]
+maze_step = 4; // [2:0.5:8]
 groove_depth = 1.5; // [1:0.5:3]
+groove_width = 2; // [1.5:0.5:4]
 
-// Maze groove width  
-groove_width = ${v.maze_thickness}; // [1.5:0.5:4]
-
-/* [Display Options] */
-// Which part to show
+/* [Display] */
 show_part = "both"; // [inner, outer, both]
-
-// Explode view distance
-explode_distance = 0; // [0:50]
+explode = 0; // [0:50]
 
 /* [Hidden] */
 $fn = 64;
 
-// Parse path string into moves
 function parse_path(str, i=0) = 
     i >= len(str) ? [] :
-    let(c = str[i])
-    let(move = c == "U" || c == "u" ? [0, 1] :
-               c == "D" || c == "d" ? [0, -1] :
-               c == "R" || c == "r" ? [1, 0] :
-               c == "L" || c == "l" ? [-1, 0] : [0, 0])
-    concat([move], parse_path(str, i+1));
+    let(c = str[i], m = c=="U"||c=="u" ? [0,1] : c=="D"||c=="d" ? [0,-1] : c=="R"||c=="r" ? [1,0] : c=="L"||c=="l" ? [-1,0] : [0,0])
+    concat([m], parse_path(str, i+1));
 
-// Build path coordinates from moves
-function build_coords(moves, start=[0,0], i=0) =
-    i >= len(moves) ? [start] :
-    let(next = [(start[0] + moves[i][0] + maze_columns) % maze_columns, start[1] + moves[i][1]])
-    concat([start], build_coords(moves, next, i+1));
+function build_coords(moves, pos=[0,0], i=0) =
+    i >= len(moves) ? [pos] :
+    concat([pos], build_coords(moves, [(pos[0]+moves[i][0]+maze_columns)%maze_columns, pos[1]+moves[i][1]], i+1));
 
-// Check if two cells are connected in the path
-function cells_connected(coords, c1, r1, c2, r2) =
-    let(count = len(coords))
-    count < 2 ? false :
-    let(matches = [for(i=[0:count-2]) 
-        if((coords[i][0] == c1 && coords[i][1] == r1 && 
-            coords[i+1][0] == c2 && coords[i+1][1] == r2) ||
-           (coords[i][0] == c2 && coords[i][1] == r2 && 
-            coords[i+1][0] == c1 && coords[i+1][1] == r1)) 1])
-    len(matches) > 0;
+function connected(coords, c1,r1, c2,r2) =
+    len([for(i=[0:len(coords)-2]) if((coords[i]==[c1,r1] && coords[i+1]==[c2,r2]) || (coords[i]==[c2,r2] && coords[i+1]==[c1,r1])) 1]) > 0;
 
-// Get the parsed path
 moves = parse_path(path_data);
 path_coords = build_coords(moves);
-path_length = len(path_coords);
 maze_rows = max([for(p=path_coords) p[1]]) + 2;
+inner_r = outer_diameter/2 - wall_thickness*2;
+outer_r = outer_diameter/2;
+col_ang = 360/maze_columns;
 
-echo(str("Path length: ", path_length));
-echo(str("Maze rows: ", maze_rows));
+echo(str("Path: ", len(path_coords), " cells, ", maze_rows, " rows"));
 
-// Calculate dimensions
-inner_radius = outer_diameter/2 - wall_thickness*2;
-outer_radius = outer_diameter/2;
-col_angle = 360 / maze_columns;
-
-// Module to create the maze grooves for the outer part
-module maze_grooves() {
-    z_base = total_height/4;
-    
-    for(row = [0:maze_rows-1]) {
-        z = z_base + row * maze_step;
-        
-        for(col = [0:maze_columns-1]) {
-            ang = col * col_angle;
-            next_col = (col + 1) % maze_columns;
-            
-            // Horizontal groove
-            h_connected = cells_connected(path_coords, col, row, next_col, row);
-            if(h_connected) {
-                rotate([0, 0, ang])
-                translate([0, 0, z])
-                rotate_extrude(angle = col_angle + 5, $fn=maze_columns*4)
-                translate([inner_radius - groove_depth/2, 0])
-                    square([groove_depth, groove_width], center=true);
-            }
-            
-            // Vertical groove
-            v_connected = cells_connected(path_coords, col, row, col, row+1);
-            if(v_connected) {
-                rotate([0, 0, ang + col_angle/2])
-                translate([inner_radius - groove_depth/2, 0, z + maze_step/2])
-                    cube([groove_depth, groove_width, maze_step + groove_width], center=true);
-            }
-        }
+module grooves() {
+    z0 = total_height/4;
+    for(row=[0:maze_rows-1], col=[0:maze_columns-1]) {
+        z = z0 + row*maze_step;
+        ang = col*col_ang;
+        if(connected(path_coords, col, row, (col+1)%maze_columns, row))
+            rotate([0,0,ang]) translate([0,0,z])
+            rotate_extrude(angle=col_ang+5, $fn=maze_columns*4)
+            translate([inner_r-groove_depth/2, 0]) square([groove_depth, groove_width], center=true);
+        if(connected(path_coords, col, row, col, row+1))
+            rotate([0,0,ang+col_ang/2]) translate([inner_r-groove_depth/2, 0, z+maze_step/2])
+            cube([groove_depth, groove_width, maze_step+groove_width], center=true);
     }
-    
-    // Entry groove at bottom
-    entry_col = path_coords[0][0];
-    rotate([0, 0, entry_col * col_angle + col_angle/2])
-    translate([inner_radius - groove_depth/2, 0, z_base/2])
-        cube([groove_depth, groove_width, z_base + groove_width], center=true);
-    
-    // Exit groove at top  
-    exit_col = path_coords[len(path_coords)-1][0];
-    exit_row = path_coords[len(path_coords)-1][1];
-    exit_z = z_base + exit_row * maze_step;
-    rotate([0, 0, exit_col * col_angle + col_angle/2])
-    translate([inner_radius - groove_depth/2, 0, exit_z + (total_height - exit_z)/2])
-        cube([groove_depth, groove_width, total_height - exit_z + groove_width], center=true);
+    // Entry/exit
+    rotate([0,0,path_coords[0][0]*col_ang+col_ang/2]) translate([inner_r-groove_depth/2,0,z0/2])
+        cube([groove_depth, groove_width, z0+groove_width], center=true);
+    exit_z = z0 + path_coords[len(path_coords)-1][1]*maze_step;
+    rotate([0,0,path_coords[len(path_coords)-1][0]*col_ang+col_ang/2]) 
+        translate([inner_r-groove_depth/2, 0, exit_z+(total_height-exit_z)/2])
+        cube([groove_depth, groove_width, total_height-exit_z+groove_width], center=true);
 }
 
-// Inner part with nubs
 module inner_part() {
-    z_base = total_height/4;
-    
+    z0 = total_height/4;
     difference() {
-        cylinder(r=inner_radius - 0.3, h=total_height - wall_thickness);
-        translate([0, 0, wall_thickness])
-            cylinder(r=inner_radius - wall_thickness - 0.3, h=total_height);
+        cylinder(r=inner_r-0.3, h=total_height-wall_thickness);
+        translate([0,0,wall_thickness]) cylinder(r=inner_r-wall_thickness-0.3, h=total_height);
     }
-    
-    // Add nubs that follow the path
-    for(i = [0:len(path_coords)-1]) {
-        col = path_coords[i][0];
-        row = path_coords[i][1];
-        z = z_base + row * maze_step;
-        ang = col * col_angle + col_angle/2;
-        
-        rotate([0, 0, ang])
-        translate([inner_radius - 0.3, 0, z])
-            sphere(r=groove_width/2 - 0.2, $fn=16);
+    for(i=[0:len(path_coords)-1]) {
+        rotate([0,0,path_coords[i][0]*col_ang+col_ang/2])
+        translate([inner_r-0.3, 0, z0+path_coords[i][1]*maze_step])
+            sphere(r=groove_width/2-0.2, $fn=16);
     }
 }
 
-// Outer part with maze grooves
 module outer_part() {
     difference() {
-        // Outer shell
         difference() {
-            cylinder(r=outer_radius, h=total_height);
-            translate([0, 0, -0.1])
-                cylinder(r=inner_radius, h=total_height + 0.2);
+            cylinder(r=outer_r, h=total_height);
+            translate([0,0,-0.1]) cylinder(r=inner_r, h=total_height+0.2);
         }
-        
-        // Cut the maze grooves
-        maze_grooves();
+        grooves();
     }
-    
-    // Bottom cap
-    cylinder(r=outer_radius, h=wall_thickness);
+    cylinder(r=outer_r, h=wall_thickness);
 }
 
-// Render based on display option
-if(show_part == "inner" || show_part == "both") {
-    color("SteelBlue")
-    translate([0, 0, show_part == "both" ? explode_distance : 0])
-        inner_part();
-}
-
-if(show_part == "outer" || show_part == "both") {
-    color("Coral", 0.7)
-        outer_part();
-}
+if(show_part=="inner" || show_part=="both")
+    color("SteelBlue") translate([0,0,explode]) inner_part();
+if(show_part=="outer" || show_part=="both")
+    color("Coral", 0.7) outer_part();
 `;
             
             const blob = new Blob([template], { type: 'text/plain' });
-            const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
-            a.href = url;
+            a.href = URL.createObjectURL(blob);
             a.download = 'puzzle_box_makerworld.scad';
-            document.body.appendChild(a);
             a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
         }
         
-        function generateScadCode() {
-            const v = getFormValues();
-            
-            return `// ============================================================
-// PUZZLE BOX - Generated ${new Date().toISOString()}
-// ============================================================
-// Seed: ${v.maze_seed} | Parts: ${v.num_parts} | Sides: ${v.outer_sides == 0 ? 'Round' : v.outer_sides}
-// Open in OpenSCAD, press F6 to render, then export as STL
-// ============================================================
-
-/* [Customize] */
-core_diameter = ${v.core_diameter};
-core_height = ${v.core_height};
-num_parts = ${v.num_parts};
-outer_sides = ${v.outer_sides};
-maze_seed = ${v.maze_seed};
-helix = ${v.helix};
-maze_step = ${v.maze_step};
-maze_complexity = ${v.maze_complexity};
-wall_thickness = ${v.wall_thickness};
-maze_thickness = ${v.maze_thickness};
-base_height = ${v.base_height};
-clearance = ${v.clearance};
-resin_mode = ${v.resin_mode};
-text_end = "${v.text_end}";
-text_depth = ${v.text_depth};
-base_thickness = 1.6;
-base_gap = 0.4;
-edge_round = 2;
-show_part = 0;
-$fn = 48;
-
-// ============================================================
-clr = resin_mode ? clearance/2 : clearance;
-bgap = resin_mode ? base_gap/2 : base_gap;
-
-function make_path(cols, rows, seed) = 
-    _make_path_iter(cols, rows, [[floor(rands(0,cols-0.1,1,seed)[0]), 0]], seed, 0);
-
-function _make_path_iter(cols, rows, path, seed, iter) =
-    let(p = path[len(path)-1], col = p[0], row = p[1])
-    (row >= rows-1 || iter > rows*4) ? path :
-    let(
-        r = rands(0, 100, 1, seed + iter)[0],
-        ncol = r < 15 ? max(0,col-1) : r < 30 ? min(cols-1,col+1) : col,
-        nrow = (r >= 30 || iter % 2 == 0) ? min(rows-1, row+1) : row,
-        npos = [ncol, nrow]
-    )
-    _make_path_iter(cols, rows, concat(path, [npos]), seed+1, iter+1);
-
-function on_path(path, c, r) = len([for(p=path) if(p[0]==c && p[1]==r) 1]) > 0;
-function path_connects(path, c1,r1, c2,r2) =
-    let(
-        i1 = [for(i=[0:len(path)-1]) if(path[i][0]==c1 && path[i][1]==r1) i],
-        i2 = [for(i=[0:len(path)-1]) if(path[i][0]==c2 && path[i][1]==r2) i]
-    ) (len(i1)>0 && len(i2)>0) ? (abs(i1[0]-i2[0]) <= 1) : false;
-
-module maze_walls(r, h, z0, seed) {
-    cols = max(12, floor(2*PI*r / maze_step));
-    cols_adj = helix > 0 ? floor(cols/helix)*helix : cols;
-    rows = max(6, floor(h / maze_step));
-    col_ang = 360 / cols_adj;
-    helix_ang = helix > 0 ? 360*helix/rows : 0;
-    path = make_path(cols_adj, rows, seed);
-    
-    for (row = [0:rows]) {
-        z = z0 + row * maze_step;
-        for (col = [0:cols_adj-1]) {
-            ang = col * col_ang + row * helix_ang / cols_adj;
-            next_col = (col + 1) % cols_adj;
-            
-            h_blocked = !path_connects(path, col, row, next_col, row);
-            if (h_blocked && row > 0 && row < rows) {
-                rotate([0, 0, ang + col_ang*0.9])
-                translate([r, 0, z])
-                    cube([maze_thickness*1.2, maze_thickness, maze_step*0.9], center=true);
-            }
-            
-            v_blocked = !path_connects(path, col, row, col, row+1);
-            if (v_blocked && row < rows-1) {
-                rotate([0, 0, ang + col_ang*0.45])
-                translate([r, 0, z + maze_step/2])
-                rotate_extrude(angle=col_ang*0.88, $fn=12)
-                    square([maze_thickness, maze_thickness], center=true);
-            }
-        }
-    }
-    
-    translate([0, 0, z0 - maze_step/4])
-        difference() {
-            cylinder(r=r+maze_thickness/2, h=maze_step/2);
-            translate([0,0,-0.1]) cylinder(r=r-maze_thickness/2, h=maze_step/2+0.2);
-            rotate([0, 0, path[0][0] * col_ang])
-            translate([r, 0, 0]) cube([maze_thickness*3, maze_thickness*2, maze_step], center=true);
-        }
-        
-    translate([0, 0, z0 + h])
-        difference() {
-            cylinder(r=r+maze_thickness/2, h=maze_step/2);
-            translate([0,0,-0.1]) cylinder(r=r-maze_thickness/2, h=maze_step/2+0.2);
-            rotate([0, 0, path[len(path)-1][0] * col_ang + (rows-1)*helix_ang/cols_adj])
-            translate([r, 0, 0]) cube([maze_thickness*3, maze_thickness*2, maze_step], center=true);
-        }
-}
-
-module nubs(r, z, n) {
-    for (i = [0:n-1]) {
-        rotate([0, 0, i*360/n])
-        translate([r, 0, z])
-        sphere(d=maze_thickness*0.8, $fn=16);
-    }
-}
-
-module shell(h, r, rnd=true) {
-    rv = (edge_round>0.5 && rnd) ? min(edge_round, h/4, r/4) : 0;
-    if (outer_sides == 0) {
-        if (rv > 0.5) minkowski() { cylinder(h=h-rv*2, r=r-rv); sphere(r=rv); }
-        else cylinder(h=h, r=r);
-    } else {
-        rp = r / cos(180/outer_sides);
-        if (rv > 0.5) minkowski() { cylinder(h=h-rv*2, r=rp-rv, $fn=outer_sides); sphere(r=rv); }
-        else cylinder(h=h, r=rp, $fn=outer_sides);
-    }
-}
-
-module inner_part() {
-    r_core = core_diameter/2;
-    r_wall = r_core + wall_thickness;
-    r_maze = r_wall + maze_thickness;
-    h = core_height + base_thickness;
-    r_base = r_maze + clr + wall_thickness;
-    maze_h = h - base_height - maze_step*2;
-    
-    color("#388E3C")
-    union() {
-        difference() {
-            union() {
-                cylinder(h=h, r=r_wall);
-                cylinder(h=base_height, r=r_base);
-            }
-            translate([0, 0, base_thickness])
-                cylinder(h=h+1, r=r_core);
-        }
-        maze_walls(r_wall + maze_thickness/2, maze_h, base_height + maze_step, maze_seed);
-        nubs(r_maze - maze_thickness*0.3, h - maze_step, max(2, helix));
-    }
-}
-
-module outer_part(pn) {
-    r_core = core_diameter/2;
-    r_prev_maze = r_core + wall_thickness + maze_thickness;
-    r_inner = r_prev_maze + clr;
-    r_outer = r_inner + wall_thickness + maze_thickness;
-    h = core_height + base_thickness + (pn-1)*(base_thickness + bgap);
-    is_last = (pn == num_parts);
-    colors = ["#388E3C", "#FBC02D", "#F57C00", "#1976D2"];
-    
-    color(colors[(pn-1)%4])
-    difference() {
-        if (is_last) shell(h, r_outer, true);
-        else cylinder(h=h, r=r_outer);
-        translate([0, 0, base_thickness]) cylinder(h=h+1, r=r_inner);
-        if (is_last && len(text_end) > 0) {
-            translate([0, 0, -0.01])
-            linear_extrude(text_depth+0.02)
-            mirror([1,0,0])
-                text(text_end, size=r_outer*0.4, halign="center", valign="center",
-                     font="Liberation Sans:style=Bold");
-        }
-    }
-}
-
-module make_part(p) {
-    if (p == 1) inner_part();
-    else outer_part(p);
-}
-
-spacing = core_diameter * 2.5 + 20;
-if (show_part == 0) {
-    for (p = [1:num_parts])
-        translate([(p-1-(num_parts-1)/2)*spacing, 0, 0]) make_part(p);
-} else {
-    make_part(min(show_part, num_parts));
-}
-`;
-        }
-        
-        function generateAndDownload() {
-            const code = generateScadCode();
-            const v = getFormValues();
-            const filename = \`puzzlebox_seed\${v.maze_seed}_\${v.num_parts}parts.scad\`;
-            
-            const blob = new Blob([code], { type: 'text/plain' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = filename;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-        }
-        
-        function showPreview() {
-            const container = document.getElementById('previewContainer');
-            const preview = document.getElementById('codePreview');
-            preview.textContent = generateScadCode();
-            container.style.display = container.style.display === 'none' ? 'block' : 'none';
-        }
-        
-        // Initialize with random seed
-        randomSeed();
+        // Generate initial path on load
+        generatePath();
     </script>
 </body>
 </html>
-
