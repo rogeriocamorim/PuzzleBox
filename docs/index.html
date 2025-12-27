@@ -190,8 +190,11 @@
         </header>
         
         <div class="info">
-            <strong>How it works:</strong> Configure your puzzle box below, then download the OpenSCAD file. 
-            Open it in <a href="https://openscad.org/downloads.html" target="_blank">OpenSCAD</a> to render and export as STL for 3D printing.
+            <strong>How it works:</strong> 
+            <ol style="margin-top: 10px; margin-left: 20px;">
+                <li><strong>For MakerWorld:</strong> Click "Generate Path" → Copy the path string → Paste into MakerWorld's parametric input</li>
+                <li><strong>For local use:</strong> Download the full OpenSCAD file and open in <a href="https://openscad.org/downloads.html" target="_blank">OpenSCAD</a></li>
+            </ol>
         </div>
         
         <form id="puzzleForm">
@@ -303,8 +306,21 @@
                 </div>
             </div>
             
+            <div class="card" style="background: linear-gradient(135deg, #1e3a5f 0%, #16213e 100%); border: 2px solid var(--accent);">
+                <h2>🎯 MakerWorld Path Generator</h2>
+                <p style="margin-bottom: 15px; color: #aaa;">Generate a random maze path, then copy and paste into MakerWorld's parametric input.</p>
+                <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+                    <button type="button" onclick="generatePath()" style="flex-shrink: 0;">🎲 Generate Path</button>
+                    <input type="text" id="pathOutput" readonly placeholder="Click 'Generate Path' to create a maze path..." 
+                           style="flex: 1; min-width: 200px; font-family: 'Fira Code', monospace; font-size: 0.9rem;">
+                    <button type="button" class="secondary" onclick="copyPath()" style="flex-shrink: 0;">📋 Copy</button>
+                </div>
+                <div id="pathInfo" style="margin-top: 10px; font-size: 0.85rem; color: #7fdbca;"></div>
+            </div>
+            
             <div class="buttons">
-                <button type="button" onclick="generateAndDownload()">⬇️ Download OpenSCAD File</button>
+                <button type="button" onclick="generateAndDownload()">⬇️ Download Full OpenSCAD</button>
+                <button type="button" onclick="downloadMakerWorldTemplate()" style="background: #1976D2;">🌐 Download MakerWorld Template</button>
                 <button type="button" class="secondary" onclick="showPreview()">👁️ Preview Code</button>
             </div>
         </form>
@@ -343,6 +359,287 @@
         
         function randomSeed() {
             document.getElementById('maze_seed').value = Math.floor(Math.random() * 9999) + 1;
+        }
+        
+        // Generate a random maze path string for MakerWorld
+        function generatePath() {
+            const v = getFormValues();
+            const cols = Math.max(6, Math.floor(Math.PI * v.core_diameter / v.maze_step));
+            const rows = Math.max(8, Math.floor((v.core_height - v.base_height) / v.maze_step));
+            const complexity = parseInt(v.maze_complexity);
+            const seed = parseInt(v.maze_seed);
+            
+            // Seeded random generator
+            function seededRandom(s) {
+                const x = Math.sin(s) * 10000;
+                return x - Math.floor(x);
+            }
+            
+            let path = "";
+            let col = Math.floor(seededRandom(seed) * cols);
+            let row = 0;
+            let currentSeed = seed;
+            let pathLength = 0;
+            
+            // Start from bottom, work up to top
+            while (row < rows - 1) {
+                currentSeed++;
+                const rand = seededRandom(currentSeed) * 100;
+                
+                // Higher complexity = more horizontal moves
+                const threshold = 15 + Math.abs(complexity) * 2;
+                
+                if (rand < threshold && col > 0) {
+                    path += "L";
+                    col--;
+                } else if (rand < threshold * 2 && col < cols - 1) {
+                    path += "R";
+                    col++;
+                } else {
+                    path += "U";
+                    row++;
+                }
+                pathLength++;
+                
+                // Add some dead-ends/backtracking for complexity
+                if (complexity > 0 && seededRandom(currentSeed + 1000) < complexity / 20) {
+                    const backRand = seededRandom(currentSeed + 2000);
+                    if (backRand < 0.5 && row > 1) {
+                        path += "D";
+                        row--;
+                        pathLength++;
+                    }
+                }
+                
+                // Safety limit
+                if (pathLength > rows * 4) break;
+            }
+            
+            document.getElementById('pathOutput').value = path;
+            document.getElementById('pathInfo').innerHTML = 
+                `<strong>Path length:</strong> ${path.length} moves | ` +
+                `<strong>Grid:</strong> ${cols} cols × ${rows} rows | ` +
+                `<strong>Seed:</strong> ${seed}`;
+        }
+        
+        function copyPath() {
+            const pathInput = document.getElementById('pathOutput');
+            if (!pathInput.value) {
+                alert('Generate a path first!');
+                return;
+            }
+            navigator.clipboard.writeText(pathInput.value).then(() => {
+                const btn = event.target;
+                btn.textContent = '✓ Copied!';
+                setTimeout(() => btn.textContent = '📋 Copy', 2000);
+            });
+        }
+        
+        function downloadMakerWorldTemplate() {
+            // Auto-generate path if not already done
+            let path = document.getElementById('pathOutput').value;
+            if (!path) {
+                generatePath();
+                path = document.getElementById('pathOutput').value;
+            }
+            
+            const v = getFormValues();
+            const template = `// Puzzle Box - MakerWorld Parametric Version
+// Compatible with MakerWorld Parametric Model Maker
+// Generated: ${new Date().toISOString()}
+
+include <BOSL2/*.scad>;
+
+/* [Puzzle Parameters] */
+// Paste the maze path string here (from website generator)
+path_data = "${path}"; // Generated path
+
+// Random seed for variations
+random_seed = ${v.maze_seed}; // [1:999]
+
+/* [Dimensions] */
+// Outer diameter of the puzzle box
+outer_diameter = ${v.core_diameter}; // [30:80]
+
+// Total height of the puzzle box
+total_height = ${v.core_height}; // [40:100]
+
+// Wall thickness
+wall_thickness = ${v.wall_thickness}; // [1.5:0.5:4]
+
+/* [Maze Settings] */
+// Number of columns in the maze
+maze_columns = 8; // [4:16]
+
+// Step height for each maze row (mm)
+maze_step = ${v.maze_step}; // [2:0.5:8]
+
+// Maze groove depth
+groove_depth = 1.5; // [1:0.5:3]
+
+// Maze groove width  
+groove_width = ${v.maze_thickness}; // [1.5:0.5:4]
+
+/* [Display Options] */
+// Which part to show
+show_part = "both"; // [inner, outer, both]
+
+// Explode view distance
+explode_distance = 0; // [0:50]
+
+/* [Hidden] */
+$fn = 64;
+
+// Parse path string into moves
+function parse_path(str, i=0) = 
+    i >= len(str) ? [] :
+    let(c = str[i])
+    let(move = c == "U" || c == "u" ? [0, 1] :
+               c == "D" || c == "d" ? [0, -1] :
+               c == "R" || c == "r" ? [1, 0] :
+               c == "L" || c == "l" ? [-1, 0] : [0, 0])
+    concat([move], parse_path(str, i+1));
+
+// Build path coordinates from moves
+function build_coords(moves, start=[0,0], i=0) =
+    i >= len(moves) ? [start] :
+    let(next = [(start[0] + moves[i][0] + maze_columns) % maze_columns, start[1] + moves[i][1]])
+    concat([start], build_coords(moves, next, i+1));
+
+// Check if two cells are connected in the path
+function cells_connected(coords, c1, r1, c2, r2) =
+    let(count = len(coords))
+    count < 2 ? false :
+    let(matches = [for(i=[0:count-2]) 
+        if((coords[i][0] == c1 && coords[i][1] == r1 && 
+            coords[i+1][0] == c2 && coords[i+1][1] == r2) ||
+           (coords[i][0] == c2 && coords[i][1] == r2 && 
+            coords[i+1][0] == c1 && coords[i+1][1] == r1)) 1])
+    len(matches) > 0;
+
+// Get the parsed path
+moves = parse_path(path_data);
+path_coords = build_coords(moves);
+path_length = len(path_coords);
+maze_rows = max([for(p=path_coords) p[1]]) + 2;
+
+echo(str("Path length: ", path_length));
+echo(str("Maze rows: ", maze_rows));
+
+// Calculate dimensions
+inner_radius = outer_diameter/2 - wall_thickness*2;
+outer_radius = outer_diameter/2;
+col_angle = 360 / maze_columns;
+
+// Module to create the maze grooves for the outer part
+module maze_grooves() {
+    z_base = total_height/4;
+    
+    for(row = [0:maze_rows-1]) {
+        z = z_base + row * maze_step;
+        
+        for(col = [0:maze_columns-1]) {
+            ang = col * col_angle;
+            next_col = (col + 1) % maze_columns;
+            
+            // Horizontal groove
+            h_connected = cells_connected(path_coords, col, row, next_col, row);
+            if(h_connected) {
+                rotate([0, 0, ang])
+                translate([0, 0, z])
+                rotate_extrude(angle = col_angle + 5, $fn=maze_columns*4)
+                translate([inner_radius - groove_depth/2, 0])
+                    square([groove_depth, groove_width], center=true);
+            }
+            
+            // Vertical groove
+            v_connected = cells_connected(path_coords, col, row, col, row+1);
+            if(v_connected) {
+                rotate([0, 0, ang + col_angle/2])
+                translate([inner_radius - groove_depth/2, 0, z + maze_step/2])
+                    cube([groove_depth, groove_width, maze_step + groove_width], center=true);
+            }
+        }
+    }
+    
+    // Entry groove at bottom
+    entry_col = path_coords[0][0];
+    rotate([0, 0, entry_col * col_angle + col_angle/2])
+    translate([inner_radius - groove_depth/2, 0, z_base/2])
+        cube([groove_depth, groove_width, z_base + groove_width], center=true);
+    
+    // Exit groove at top  
+    exit_col = path_coords[len(path_coords)-1][0];
+    exit_row = path_coords[len(path_coords)-1][1];
+    exit_z = z_base + exit_row * maze_step;
+    rotate([0, 0, exit_col * col_angle + col_angle/2])
+    translate([inner_radius - groove_depth/2, 0, exit_z + (total_height - exit_z)/2])
+        cube([groove_depth, groove_width, total_height - exit_z + groove_width], center=true);
+}
+
+// Inner part with nubs
+module inner_part() {
+    z_base = total_height/4;
+    
+    difference() {
+        cylinder(r=inner_radius - 0.3, h=total_height - wall_thickness);
+        translate([0, 0, wall_thickness])
+            cylinder(r=inner_radius - wall_thickness - 0.3, h=total_height);
+    }
+    
+    // Add nubs that follow the path
+    for(i = [0:len(path_coords)-1]) {
+        col = path_coords[i][0];
+        row = path_coords[i][1];
+        z = z_base + row * maze_step;
+        ang = col * col_angle + col_angle/2;
+        
+        rotate([0, 0, ang])
+        translate([inner_radius - 0.3, 0, z])
+            sphere(r=groove_width/2 - 0.2, $fn=16);
+    }
+}
+
+// Outer part with maze grooves
+module outer_part() {
+    difference() {
+        // Outer shell
+        difference() {
+            cylinder(r=outer_radius, h=total_height);
+            translate([0, 0, -0.1])
+                cylinder(r=inner_radius, h=total_height + 0.2);
+        }
+        
+        // Cut the maze grooves
+        maze_grooves();
+    }
+    
+    // Bottom cap
+    cylinder(r=outer_radius, h=wall_thickness);
+}
+
+// Render based on display option
+if(show_part == "inner" || show_part == "both") {
+    color("SteelBlue")
+    translate([0, 0, show_part == "both" ? explode_distance : 0])
+        inner_part();
+}
+
+if(show_part == "outer" || show_part == "both") {
+    color("Coral", 0.7)
+        outer_part();
+}
+`;
+            
+            const blob = new Blob([template], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'puzzle_box_makerworld.scad';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
         }
         
         function generateScadCode() {
