@@ -98,13 +98,23 @@ module maze_walls(r, h, z0, seed) {
                     cube([maze_thickness*1.2, maze_thickness, maze_step*0.9], center=true);
             }
             
-            // Vertical wall (blocks up/down movement)
+            // Vertical wall (blocks up/down movement) - arc segment
             v_blocked = !path_connects(path, col, row, col, row+1);
             if (v_blocked && row < rows-1) {
-                rotate([0, 0, ang + col_ang*0.45])
-                translate([r, 0, z + maze_step/2])
-                rotate_extrude(angle=col_ang*0.88, $fn=12)
-                    square([maze_thickness, maze_thickness], center=true);
+                rotate([0, 0, ang])
+                translate([0, 0, z + maze_step/2])
+                linear_extrude(height=maze_thickness, center=true)
+                difference() {
+                    circle(r=r+maze_thickness/2, $fn=cols_adj);
+                    circle(r=r-maze_thickness/2, $fn=cols_adj);
+                    // Cut away all but our arc segment
+                    rotate([0, 0, col_ang*0.9])
+                    translate([-r*2, 0])
+                        square([r*4, r*4]);
+                    rotate([0, 0, -col_ang*0.1])
+                    translate([-r*2, -r*4])
+                        square([r*4, r*4]);
+                }
             }
         }
     }
