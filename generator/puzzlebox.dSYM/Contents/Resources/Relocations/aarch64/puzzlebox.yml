@@ -1,0 +1,16 @@
+---
+triple:          'arm64-apple-darwin'
+binary-path:     puzzlebox
+relocations:
+  - { offset: 0x429, size: 0x8, addend: 0x0, symName: _main, symObjAddr: 0x6200, symBinAddr: 0x100004C90, symSize: 0x1E08 }
+  - { offset: 0x840, size: 0x8, addend: 0x0, symName: _normalise.0, symObjAddr: 0x0, symBinAddr: 0x100000648, symSize: 0x24 }
+  - { offset: 0x8C7, size: 0x8, addend: 0x0, symName: _cuttext.10, symObjAddr: 0x104, symBinAddr: 0x10000074C, symSize: 0x13C }
+  - { offset: 0x980, size: 0x8, addend: 0x0, symName: _box.1, symObjAddr: 0x3568, symBinAddr: 0x100003BB0, symSize: 0x10E0 }
+  - { offset: 0xADD, size: 0x8, addend: 0x0, symName: _makemaze.2, symObjAddr: 0x12D4, symBinAddr: 0x10000191C, symSize: 0x2294 }
+  - { offset: 0xBA0, size: 0x8, addend: 0x0, symName: _test.5, symObjAddr: 0x24, symBinAddr: 0x10000066C, symSize: 0xE0 }
+  - { offset: 0xC76, size: 0x8, addend: 0x0, symName: _addpoint.4, symObjAddr: 0x31C, symBinAddr: 0x100000964, symSize: 0xD8 }
+  - { offset: 0xCDC, size: 0x8, addend: 0x0, symName: _addpointr.3, symObjAddr: 0x240, symBinAddr: 0x100000888, symSize: 0xDC }
+  - { offset: 0xD66, size: 0x8, addend: 0x0, symName: _slice.6, symObjAddr: 0xC08, symBinAddr: 0x100001250, symSize: 0x6CC }
+  - { offset: 0x152A, size: 0x8, addend: 0x0, symName: _textside.12, symObjAddr: 0x3F4, symBinAddr: 0x100000A3C, symSize: 0x188 }
+  - { offset: 0x15EC, size: 0x8, addend: 0x0, symName: _addnub.13, symObjAddr: 0x57C, symBinAddr: 0x100000BC4, symSize: 0x68C }
+...

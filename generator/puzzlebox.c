@@ -1,7 +1,5 @@
-// Puzzle box maker
-// (c) 2018 Adrian Kennard www.me.uk @TheRealRevK
-// This includes a distinctive "A" in the design at the final park point, otherwise there are no loops in the maze
-// Please leave the "A" in the design as a distinctive feature
+// Puzzle Box Generator
+// Made by Rogerio Camorim
 
 #include <stdio.h>
 #include <string.h>
@@ -58,6 +56,8 @@ main (int argc, const char *argv[])
    double logodepth = 0.6;
    double gripdepth = 1.5;
    double textsidescale = 100;
+   double textendscale = 100;
+   double textinsidescale = 100;
    char *textinside = NULL;
    char *textend = NULL;
    char *textsides = NULL;
@@ -147,6 +147,8 @@ main (int argc, const char *argv[])
        "Text font for end (optional)", "Font"},
       {"text-slow", 'd', POPT_ARG_NONE, &textslow, 0, "Text has diagonal edges"},
       {"text-side-scale", 'T', POPT_ARG_DOUBLE, &textsidescale, 0, "Scale side text (i.e. if too long)", "%"},
+      {"text-end-scale", 'U', POPT_ARG_DOUBLE, &textendscale, 0, "Scale end text", "%"},
+      {"text-inside-scale", 'J', POPT_ARG_DOUBLE, &textinsidescale, 0, "Scale inside text", "%"},
       {"text-outset", 'O', POPT_ARG_NONE, &textoutset, 0, "Text on sides is outset not embossed"},
       {"logo-depth", 'L', POPT_ARG_DOUBLE | POPT_ARGFLAG_SHOW_DEFAULT, &logodepth, 0, "Logo (and inside text) cut depth", "mm"},
       {"symmetric-cut", 'V', POPT_ARG_NONE, &symmectriccut, 0, "Symmetric maze cut"},
@@ -470,10 +472,7 @@ main (int argc, const char *argv[])
    } else if (outfile && !(out = fopen (outfile, "w")))
       err (1, "Cannot open %s", outfile);
 
-   fprintf (out, "// Puzzlebox by RevK, @TheRealRevK www.me.uk\n");
-   fprintf (out, "// Thingiverse examples and instructions https://www.thingiverse.com/thing:2410748\n");
-   fprintf (out, "// GitHub source https://github.com/revk/PuzzleBox\n");
-   fprintf (out, "// Get new random custom maze gift boxes from https://www.me.uk/puzzlebox\n");
+   fprintf (out, "// Puzzle Box Generator by Rogerio Camorim\n");
    {                            // Document args
       time_t now = time (0);
       struct tm t;
@@ -1299,7 +1298,7 @@ main (int argc, const char *argv[])
             if (*p && n == (parts - part))
             {
                fprintf (out, "rotate([0,0,%f])", (part == parts ? 1 : -1) * (90 + (double) 180 / (outersides ? : 100)));
-               cuttext (r2 - outerround, p, textfontend, 0);
+               cuttext ((r2 - outerround) * textendscale / 100, p, textfontend, 0);
             }
             p = q;
             n++;
@@ -1337,7 +1336,7 @@ main (int argc, const char *argv[])
          fprintf
             (out,
              "translate([0,0,%lld])linear_extrude(height=%lld,convexity=10)text(\"%s\",font=\"%s\",size=%lld,halign=\"center\",valign=\"center\");\n",
-             scaled (basethickness - logodepth), scaled (logodepth * 2), textinside, textfontend, scaled (r0));
+             scaled (basethickness - logodepth), scaled (logodepth * 2), textinside, textfontend, scaled (r0 * textinsidescale / 100));
       if (markpos0 && part + 1 >= parts)
          mark ();
       fprintf (out, "}\n");

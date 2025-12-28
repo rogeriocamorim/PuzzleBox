@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: puzzlebox-generator
+    runtime: python
+    buildCommand: |
+      apt-get update && apt-get install -y libpopt-dev
+      cd generator && gcc -O -o puzzlebox puzzlebox.c -lpopt -lm
+    startCommand: python3 puzzlebox.py
+    envVars:
+      - key: PORT
+        value: 10000
+    healthCheckPath: /api/health
+

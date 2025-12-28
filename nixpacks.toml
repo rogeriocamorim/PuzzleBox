@@ -1,0 +1,9 @@
+[phases.setup]
+nixPkgs = ["python3", "gcc", "popt"]
+
+[phases.build]
+cmds = ["cd generator && gcc -O -o puzzlebox puzzlebox.c -lpopt -lm -I/nix/store/*/include -L/nix/store/*/lib"]
+
+[start]
+cmd = "python3 puzzlebox.py"
+
