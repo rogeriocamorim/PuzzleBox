@@ -1383,4 +1383,169 @@ body {
     user-select: all;
 }
 
+/* ========================================
+   PARTS OVERVIEW GRID
+   ======================================== */
+
+.parts-overview {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: var(--space-md);
+    margin-bottom: var(--space-xl);
+}
+
+.part-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-lg);
+    background: var(--bg-tertiary);
+    border: 2px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    cursor: pointer;
+    transition: var(--transition-base);
+    min-height: 120px;
+}
+
+.part-card:hover {
+    border-color: var(--accent-primary);
+    background: var(--bg-card-hover);
+    transform: translateY(-4px);
+    box-shadow: 0 10px 30px -10px var(--accent-glow);
+}
+
+.part-card.active {
+    border-color: var(--accent-primary);
+    background: var(--accent-soft);
+    box-shadow: 0 0 30px -10px var(--accent-glow);
+}
+
+.part-card-icon {
+    font-size: 2.5rem;
+    margin-bottom: var(--space-sm);
+    opacity: 0.8;
+}
+
+.part-card:nth-child(1) .part-card-icon { color: var(--accent-alt); }
+.part-card:nth-child(2) .part-card-icon { color: #8b5cf6; }
+.part-card:nth-child(3) .part-card-icon { color: #ec4899; }
+.part-card:nth-child(4) .part-card-icon { color: #10b981; }
+.part-card:nth-child(5) .part-card-icon { color: #f59e0b; }
+.part-card:nth-child(6) .part-card-icon { color: #ef4444; }
+
+.part-card-name {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    text-align: center;
+    margin-bottom: var(--space-xs);
+}
+
+.part-card-size {
+    font-size: 0.7rem;
+    font-family: var(--font-mono);
+    color: var(--text-muted);
+}
+
+.part-card-number {
+    position: absolute;
+    top: var(--space-sm);
+    left: var(--space-sm);
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-medium);
+    border-radius: 50%;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--text-secondary);
+}
+
+.part-card.active .part-card-number {
+    background: var(--accent-primary);
+    border-color: var(--accent-primary);
+    color: var(--bg-primary);
+}
+
+/* Selected Part Code Display */
+.selected-part-code {
+    margin-top: var(--space-lg);
+}
+
+.selected-part-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-md) var(--space-lg);
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-subtle);
+    border-bottom: none;
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
+}
+
+.selected-part-title {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+}
+
+.selected-part-name {
+    font-family: var(--font-mono);
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--accent-primary);
+}
+
+.selected-part-badge {
+    padding: var(--space-xs) var(--space-sm);
+    background: var(--accent-soft);
+    border-radius: var(--radius-sm);
+    font-size: 0.7rem;
+    font-family: var(--font-mono);
+    color: var(--accent-primary);
+}
+
+.selected-part-content {
+    margin: 0;
+    padding: var(--space-lg);
+    background: var(--bg-primary);
+    border: 1px solid var(--border-subtle);
+    border-radius: 0 0 var(--radius-md) var(--radius-md);
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    line-height: 1.5;
+    color: var(--text-secondary);
+    overflow-x: auto;
+    white-space: pre-wrap;
+    word-break: break-all;
+    max-height: 350px;
+    overflow-y: auto;
+}
+
+/* Parts count indicator */
+.parts-count-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-md);
+    background: var(--accent-soft);
+    border: 1px solid var(--accent-primary);
+    border-radius: 100px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--accent-primary);
+    margin-bottom: var(--space-lg);
+}
+
+.parts-count-badge .count {
+    font-family: var(--font-mono);
+    font-size: 1rem;
+}
+
 

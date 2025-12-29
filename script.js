@@ -297,63 +297,99 @@ async function generatePuzzleBox(format) {
 // SCAD CODE MODAL
 // ========================================
 
+// Store parts globally for the modal
+let currentParts = [];
+
 function showPartsModal(parts, fullScad, shareId) {
     const modal = document.getElementById('codeModal');
-    const codeBlocks = document.getElementById('codeBlocks');
+    const partsOverview = document.getElementById('partsOverview');
+    const shareIdSection = document.getElementById('shareIdSection');
+    const selectedPartCode = document.getElementById('selectedPartCode');
+    
+    // Store parts for later access
+    currentParts = parts;
     
     // Clear previous content
-    codeBlocks.innerHTML = '';
+    partsOverview.innerHTML = '';
+    shareIdSection.innerHTML = '';
+    selectedPartCode.innerHTML = '';
+    
+    // Part icons based on position
+    const partIcons = ['🔲', '🔳', '⬜', '◻️', '▫️', '◽'];
+    
+    // Create parts grid
+    parts.forEach((part, index) => {
+        const charCount = (part.code.length / 1000).toFixed(1);
+        const icon = partIcons[index] || '📦';
+        
+        const card = document.createElement('div');
+        card.className = 'part-card' + (index === 0 ? ' active' : '');
+        card.onclick = () => selectPart(index);
+        card.innerHTML = `
+            <span class="part-card-number">${index + 1}</span>
+            <span class="part-card-icon">${icon}</span>
+            <span class="part-card-name">${part.name}</span>
+            <span class="part-card-size">${charCount}K chars</span>
+        `;
+        partsOverview.appendChild(card);
+    });
     
     // Add share ID section
     if (shareId) {
-        const shareDiv = document.createElement('div');
-        shareDiv.className = 'share-id-box';
-        shareDiv.innerHTML = `
-            <div class="share-id-header">
-                <span class="share-id-label">🔗 Share ID (save to regenerate this exact puzzle)</span>
-                <button type="button" class="copy-btn small" onclick="copyShareId(this, '${shareId}')">
-                    <span class="copy-icon">📋</span>
-                    <span class="copy-text">Copy</span>
-                </button>
+        shareIdSection.innerHTML = `
+            <div class="share-id-box">
+                <div class="share-id-header">
+                    <span class="share-id-label">🔗 Share ID (save to regenerate this exact puzzle)</span>
+                    <button type="button" class="copy-btn small" onclick="copyShareId(this, '${shareId}')">
+                        <span class="copy-icon">📋</span>
+                        <span class="copy-text">Copy</span>
+                    </button>
+                </div>
+                <code class="share-id-value">${shareId}</code>
             </div>
-            <code class="share-id-value">${shareId}</code>
         `;
-        codeBlocks.appendChild(shareDiv);
     }
     
-    // Add info about copying parts separately
-    const infoDiv = document.createElement('div');
-    infoDiv.className = 'parts-info';
-    infoDiv.innerHTML = `
-        <p><strong>💡 Tip:</strong> Copy each part separately to avoid MakerWorld timeout errors.</p>
-    `;
-    codeBlocks.appendChild(infoDiv);
-    
-    // Create a code block for each part
-    parts.forEach((part, index) => {
-        const block = document.createElement('div');
-        block.className = 'code-block';
-        
-        const charCount = part.code.length.toLocaleString();
-        
-        block.innerHTML = `
-            <div class="code-block-header">
-                <span class="code-block-title">${part.name} <span class="char-count">(${charCount} chars)</span></span>
-                <button type="button" class="copy-btn" onclick="copyPartCode(this, ${index})">
-                    <span class="copy-icon">📋</span>
-                    <span class="copy-text">Copy ${part.name}</span>
-                </button>
-            </div>
-            <pre class="code-content" id="part-code-${index}">${escapeHtml(part.code)}</pre>
-        `;
-        
-        codeBlocks.appendChild(block);
-    });
-    
+    // Show first part by default
+    if (parts.length > 0) {
+        showPartCode(0, parts[0]);
+    }
     
     // Show modal
     modal.style.display = 'flex';
     document.body.style.overflow = 'hidden';
+}
+
+function selectPart(index) {
+    // Update active state on cards
+    const cards = document.querySelectorAll('.part-card');
+    cards.forEach((card, i) => {
+        card.classList.toggle('active', i === index);
+    });
+    
+    // Show the part code
+    if (currentParts[index]) {
+        showPartCode(index, currentParts[index]);
+    }
+}
+
+function showPartCode(index, part) {
+    const selectedPartCode = document.getElementById('selectedPartCode');
+    const charCount = part.code.length.toLocaleString();
+    
+    selectedPartCode.innerHTML = `
+        <div class="selected-part-header">
+            <div class="selected-part-title">
+                <span class="selected-part-name">${part.name}</span>
+                <span class="selected-part-badge">${charCount} characters</span>
+            </div>
+            <button type="button" class="copy-btn" onclick="copyPartCode(this, ${index})">
+                <span class="copy-icon">📋</span>
+                <span class="copy-text">Copy ${part.name}</span>
+            </button>
+        </div>
+        <pre class="selected-part-content" id="part-code-${index}">${escapeHtml(part.code)}</pre>
+    `;
 }
 
 function showScadModal(scadContent) {
@@ -869,3 +905,4 @@ window.copyPartCode = copyPartCode;
 window.copyFullScad = copyFullScad;
 window.importShareId = importShareId;
 window.copyShareId = copyShareId;
+window.selectPart = selectPart;
