@@ -807,6 +807,7 @@ body {
 .generate-section {
     display: flex;
     justify-content: center;
+    flex-wrap: wrap;
     gap: var(--space-lg);
     margin-top: var(--space-2xl);
     padding: var(--space-xl);

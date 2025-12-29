@@ -144,6 +144,7 @@ function initSliders() {
 function initFormSubmission() {
     const form = document.getElementById('puzzleForm');
     const downloadBtn = document.getElementById('downloadBtn');
+    const stlBtn = document.getElementById('stlBtn');
     
     if (downloadBtn) {
         downloadBtn.addEventListener('click', async (e) => {
@@ -168,6 +169,30 @@ function initFormSubmission() {
                 downloadBtn.querySelector('.btn-title').textContent = originalTitle;
                 downloadBtn.querySelector('.btn-desc').textContent = originalDesc;
                 downloadBtn.disabled = false;
+            }
+        });
+    }
+    
+    if (stlBtn) {
+        stlBtn.addEventListener('click', async (e) => {
+            e.preventDefault();
+            
+            // Visual feedback - show loading
+            stlBtn.classList.add('generating');
+            const originalTitle = stlBtn.querySelector('.btn-title').textContent;
+            const originalDesc = stlBtn.querySelector('.btn-desc').textContent;
+            stlBtn.querySelector('.btn-title').textContent = 'Generating...';
+            stlBtn.querySelector('.btn-desc').textContent = 'Creating STL file...';
+            stlBtn.disabled = true;
+            
+            try {
+                await generatePuzzleBox('stl');
+            } finally {
+                // Reset button state
+                stlBtn.classList.remove('generating');
+                stlBtn.querySelector('.btn-title').textContent = originalTitle;
+                stlBtn.querySelector('.btn-desc').textContent = originalDesc;
+                stlBtn.disabled = false;
             }
         });
     }
