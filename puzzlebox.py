@@ -411,9 +411,9 @@ class PuzzleBoxHandler(SimpleHTTPRequestHandler):
             if is_inner_core_with_watermark:
                 # Close union, add the text cutout, close difference and scale
                 code_lines.append("  }")  # Close union
-                code_lines.append("  // RC watermark cutout - visible in slicer layers 2-4")
-                code_lines.append("  translate([0,0,200])linear_extrude(height=600,convexity=2)")
-                code_lines.append("    text(\"RC\",size=3000,font=\"Liberation Sans:style=Bold\",halign=\"center\",valign=\"center\");")
+                code_lines.append("  // RC watermark cutout - cuts through base, visible in slicer")
+                code_lines.append("  translate([0,0,-1])linear_extrude(height=2000,convexity=2)")
+                code_lines.append("    text(\"RC\",size=8000,font=\"Liberation Sans:style=Bold\",halign=\"center\",valign=\"center\");")
                 code_lines.append("}")  # Close difference and scale
             else:
                 code_lines.append("}")  # Close scale
