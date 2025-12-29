@@ -919,19 +919,36 @@ body {
     color: var(--accent-primary);
 }
 
-.footer-url {
-    font-size: 0.85rem;
+.footer-links {
+    display: flex;
+    justify-content: center;
+    gap: var(--space-lg);
+    flex-wrap: wrap;
 }
 
-.footer-url a {
-    color: var(--accent-alt);
+.footer-link {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-lg);
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: 100px;
+    color: var(--text-secondary);
     text-decoration: none;
-    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    font-weight: 500;
     transition: var(--transition-fast);
 }
 
-.footer-url a:hover {
+.footer-link:hover {
+    background: var(--bg-card-hover);
+    border-color: var(--accent-primary);
     color: var(--text-primary);
+}
+
+.footer-link-icon {
+    font-size: 1rem;
 }
 
 /* ========================================
