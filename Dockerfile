@@ -17,7 +17,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Build the C generator
-RUN cd generator && gcc -O -o puzzlebox puzzlebox.c -lpopt -lm
+RUN cd generator && gcc -O -D_GNU_SOURCE -o puzzlebox puzzlebox.c -lpopt -lm
 
 # Expose port
 EXPOSE 10000
