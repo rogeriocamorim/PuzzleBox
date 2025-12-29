@@ -8,8 +8,80 @@ document.addEventListener('DOMContentLoaded', () => {
     initSliders();
     initFormSubmission();
     initAnimations();
+    initMazeRowsCalculator();
     checkServerHealth();
 });
+
+// ========================================
+// MAZE ROWS CALCULATOR
+// ========================================
+
+function initMazeRowsCalculator() {
+    const heightInput = document.getElementById('h');
+    const mazeSpacingInput = document.getElementById('z');
+    const baseHeightInput = document.getElementById('b');
+    const mazeMarginInput = document.getElementById('M');
+    
+    // Calculate on any relevant input change
+    const updateMazeRows = () => {
+        calculateMazeRows();
+    };
+    
+    if (heightInput) {
+        heightInput.addEventListener('input', updateMazeRows);
+    }
+    if (mazeSpacingInput) {
+        mazeSpacingInput.addEventListener('input', updateMazeRows);
+    }
+    if (baseHeightInput) {
+        baseHeightInput.addEventListener('input', updateMazeRows);
+    }
+    if (mazeMarginInput) {
+        mazeMarginInput.addEventListener('input', updateMazeRows);
+    }
+    
+    // Initial calculation
+    calculateMazeRows();
+}
+
+function calculateMazeRows() {
+    const heightInput = document.getElementById('h');
+    const mazeSpacingInput = document.getElementById('z');
+    const baseHeightInput = document.getElementById('b');
+    const mazeMarginInput = document.getElementById('M');
+    const mazeRowsDisplay = document.getElementById('mazeRowsCount');
+    
+    if (!mazeRowsDisplay) return;
+    
+    // Get values with defaults matching the C generator
+    const height = parseFloat(heightInput?.value) || 50;
+    const mazeStep = parseFloat(mazeSpacingInput?.value) || 3;
+    const baseHeight = parseFloat(baseHeightInput?.value) || 10;
+    const mazeMargin = parseFloat(mazeMarginInput?.value) || 1;
+    const basethickness = 1.6; // Default from C code
+    
+    // Formula from C code: H = (height - base - mazemargin) / mazestep
+    // where base = baseHeight + basethickness (approximately)
+    const availableHeight = height - baseHeight - basethickness - mazeMargin;
+    const rows = Math.max(1, Math.floor(availableHeight / mazeStep));
+    
+    mazeRowsDisplay.textContent = rows;
+    
+    // Add visual feedback based on difficulty
+    const indicator = mazeRowsDisplay.closest('.maze-rows-indicator');
+    if (indicator) {
+        indicator.classList.remove('easy', 'medium', 'hard', 'extreme');
+        if (rows <= 5) {
+            indicator.classList.add('easy');
+        } else if (rows <= 10) {
+            indicator.classList.add('medium');
+        } else if (rows <= 15) {
+            indicator.classList.add('hard');
+        } else {
+            indicator.classList.add('extreme');
+        }
+    }
+}
 
 // ========================================
 // SERVER HEALTH CHECK
@@ -718,8 +790,9 @@ function applyPreset(presetName) {
         }
     });
     
-    // Update sliders
+    // Update sliders and maze rows
     initSliders();
+    calculateMazeRows();
     
     showNotification(`Applied "${presetName}" preset`, 'info');
 }
@@ -767,8 +840,9 @@ async function importShareId() {
                 }
             });
             
-            // Update sliders display
+            // Update sliders display and maze rows
             initSliders();
+            calculateMazeRows();
             
             showNotification('Settings restored from Share ID!', 'success');
             shareInput.value = '';  // Clear the input

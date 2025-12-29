@@ -353,6 +353,96 @@ body {
     grid-column: 1 / -1;
 }
 
+/* Highlighted Section (Box Size) */
+.form-section.highlight {
+    border-color: var(--accent-primary);
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.08) 0%, var(--bg-card) 100%);
+    box-shadow: 0 0 40px -15px var(--accent-glow);
+}
+
+.form-section.highlight:hover {
+    box-shadow: 0 0 80px -20px var(--accent-glow);
+}
+
+.form-section.highlight .section-number {
+    background: var(--accent-primary);
+    color: var(--bg-primary);
+}
+
+.form-section.highlight .section-desc strong {
+    color: var(--accent-secondary);
+}
+
+/* Maze Rows Indicator */
+.maze-rows-indicator {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    padding: var(--space-md) var(--space-lg);
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    margin-top: var(--space-md);
+    transition: var(--transition-base);
+}
+
+.maze-rows-icon {
+    font-size: 1.5rem;
+}
+
+.maze-rows-text {
+    font-size: 0.95rem;
+    color: var(--text-secondary);
+}
+
+.maze-rows-text strong {
+    font-family: var(--font-mono);
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--accent-primary);
+    margin: 0 0.25em;
+}
+
+.maze-rows-hint {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+/* Maze difficulty color states */
+.maze-rows-indicator.easy {
+    border-color: #10b981;
+}
+
+.maze-rows-indicator.easy .maze-rows-text strong {
+    color: #10b981;
+}
+
+.maze-rows-indicator.medium {
+    border-color: var(--accent-primary);
+}
+
+.maze-rows-indicator.medium .maze-rows-text strong {
+    color: var(--accent-primary);
+}
+
+.maze-rows-indicator.hard {
+    border-color: #f97316;
+}
+
+.maze-rows-indicator.hard .maze-rows-text strong {
+    color: #f97316;
+}
+
+.maze-rows-indicator.extreme {
+    border-color: #ef4444;
+    background: rgba(239, 68, 68, 0.1);
+}
+
+.maze-rows-indicator.extreme .maze-rows-text strong {
+    color: #ef4444;
+}
+
 .form-section h2 {
     display: flex;
     align-items: center;
