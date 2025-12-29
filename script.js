@@ -84,6 +84,488 @@ function calculateMazeRows() {
 }
 
 // ========================================
+// MAZE PREVIEW GENERATOR
+// ========================================
+
+// Maze cell flags (matching C code)
+const FLAGL = 0x01;  // Left connection
+const FLAGR = 0x02;  // Right connection  
+const FLAGU = 0x04;  // Up connection
+const FLAGD = 0x08;  // Down connection
+const FLAGI = 0x80;  // Invalid/out of bounds
+
+// Direction biases (matching C code)
+const BIASL = 2;
+const BIASR = 1;
+const BIASU = 1;
+const BIASD = 4;
+
+class MazeGenerator {
+    constructor(params) {
+        this.width = params.width || 24;
+        this.height = params.height || 12;
+        this.helix = params.helix || 2;
+        this.complexity = params.complexity || 5;
+        this.nubs = params.nubs || 2;
+        
+        this.maze = [];
+        this.solution = [];
+        this.entry = null;
+        this.exit = null;
+        this.pathLength = 0;
+        this.deadEnds = 0;
+    }
+    
+    // Test if cell has been visited or is invalid
+    test(x, y) {
+        // Wrap x around cylinder
+        if (x < 0) {
+            x += this.width;
+            y -= this.helix;
+        }
+        if (x >= this.width) {
+            x -= this.width;
+            y += this.helix;
+        }
+        // Check bounds
+        if (y < 0 || y >= this.height) {
+            return FLAGI;
+        }
+        return this.maze[x][y];
+    }
+    
+    generate() {
+        // Initialize maze grid
+        this.maze = [];
+        for (let x = 0; x < this.width; x++) {
+            this.maze[x] = [];
+            for (let y = 0; y < this.height; y++) {
+                this.maze[x][y] = 0;
+            }
+        }
+        
+        // Mark invalid cells (top/bottom margins)
+        for (let x = 0; x < this.width; x++) {
+            this.maze[x][0] |= FLAGI;
+            this.maze[x][this.height - 1] |= FLAGI;
+        }
+        
+        // Starting point (exit at bottom)
+        let startX = 0;
+        let startY = this.helix + 1;
+        this.exit = { x: startX, y: startY };
+        
+        // Mark starting cell
+        this.maze[startX][startY] |= FLAGD;
+        
+        // Growing tree algorithm (matching C implementation)
+        let maxPathLen = 0;
+        let entryX = 0;
+        
+        // Queue of positions to explore
+        let queue = [{ x: startX, y: startY, pathLen: 0, path: [{x: startX, y: startY}] }];
+        let bestPath = [];
+        
+        while (queue.length > 0) {
+            // Get next position
+            const current = queue.shift();
+            let x = current.x;
+            let y = current.y;
+            
+            // Find available directions
+            let directions = [];
+            
+            if (!(this.test(x + 1, y) & (FLAGI | FLAGL | FLAGR | FLAGU | FLAGD))) {
+                for (let i = 0; i < BIASR; i++) directions.push('R');
+            }
+            if (!(this.test(x - 1, y) & (FLAGI | FLAGL | FLAGR | FLAGU | FLAGD))) {
+                for (let i = 0; i < BIASL; i++) directions.push('L');
+            }
+            if (!(this.test(x, y + 1) & (FLAGI | FLAGL | FLAGR | FLAGU | FLAGD))) {
+                for (let i = 0; i < BIASU; i++) directions.push('U');
+            }
+            if (!(this.test(x, y - 1) & (FLAGI | FLAGL | FLAGR | FLAGU | FLAGD))) {
+                for (let i = 0; i < BIASD; i++) directions.push('D');
+            }
+            
+            if (directions.length === 0) continue;
+            
+            // Pick random direction
+            const dir = directions[Math.floor(Math.random() * directions.length)];
+            
+            let newX = x, newY = y;
+            
+            if (dir === 'R') {
+                this.maze[x][y] |= FLAGR;
+                newX = x + 1;
+                if (newX >= this.width) {
+                    newX -= this.width;
+                    newY += this.helix;
+                }
+                if (newY < this.height) this.maze[newX][newY] |= FLAGL;
+            } else if (dir === 'L') {
+                this.maze[x][y] |= FLAGL;
+                newX = x - 1;
+                if (newX < 0) {
+                    newX += this.width;
+                    newY -= this.helix;
+                }
+                if (newY >= 0) this.maze[newX][newY] |= FLAGR;
+            } else if (dir === 'U') {
+                this.maze[x][y] |= FLAGU;
+                newY = y + 1;
+                if (newY < this.height) this.maze[newX][newY] |= FLAGD;
+            } else if (dir === 'D') {
+                this.maze[x][y] |= FLAGD;
+                newY = y - 1;
+                if (newY >= 0) this.maze[newX][newY] |= FLAGU;
+            }
+            
+            // Check if this reaches top (potential entry point)
+            if (newY >= this.height - 2 && current.pathLen > maxPathLen) {
+                maxPathLen = current.pathLen;
+                entryX = newX;
+                bestPath = [...current.path, {x: newX, y: newY}];
+            }
+            
+            // Create new path for next position
+            const newPath = [...current.path, {x: newX, y: newY}];
+            const newPos = { x: newX, y: newY, pathLen: current.pathLen + 1, path: newPath };
+            
+            // Add to queue based on complexity
+            // Higher complexity = add to front (depth-first = longer paths)
+            // Lower complexity = add to back (breadth-first = more branches)
+            const threshold = Math.abs(this.complexity);
+            if (Math.random() * 10 < threshold) {
+                queue.unshift(newPos);  // Add to front
+            } else {
+                queue.push(newPos);     // Add to back
+            }
+            
+            // Also re-add current position to continue exploring
+            if (Math.random() * 10 < threshold) {
+                queue.unshift(current);
+            } else {
+                queue.push(current);
+            }
+        }
+        
+        // Set entry point
+        this.entry = { x: entryX, y: this.height - 1 };
+        this.solution = bestPath;
+        this.pathLength = maxPathLen;
+        
+        // Mark entry column
+        for (let y = this.height - 1; y >= 0 && (this.maze[entryX][y] & FLAGI); y--) {
+            this.maze[entryX][y] |= FLAGU | FLAGD;
+        }
+        
+        // Count dead ends
+        this.deadEnds = 0;
+        for (let x = 0; x < this.width; x++) {
+            for (let y = 0; y < this.height; y++) {
+                const cell = this.maze[x][y];
+                if (cell & FLAGI) continue;
+                
+                let connections = 0;
+                if (cell & FLAGL) connections++;
+                if (cell & FLAGR) connections++;
+                if (cell & FLAGU) connections++;
+                if (cell & FLAGD) connections++;
+                
+                if (connections === 1) this.deadEnds++;
+            }
+        }
+        
+        return {
+            width: this.width,
+            height: this.height,
+            maze: this.maze,
+            solution: this.solution,
+            entry: this.entry,
+            exit: this.exit,
+            pathLength: this.pathLength,
+            deadEnds: this.deadEnds
+        };
+    }
+}
+
+class MazeRenderer {
+    constructor(canvas) {
+        this.canvas = canvas;
+        this.ctx = canvas.getContext('2d');
+        this.cellSize = 20;
+        this.wallWidth = 2;
+        this.padding = 20;
+    }
+    
+    render(mazeData) {
+        const { width, height, maze, solution, entry, exit } = mazeData;
+        
+        // Calculate dimensions
+        this.cellSize = Math.min(
+            (this.canvas.width - this.padding * 2) / width,
+            (this.canvas.height - this.padding * 2) / height,
+            25
+        );
+        
+        const mazeWidth = width * this.cellSize;
+        const mazeHeight = height * this.cellSize;
+        const offsetX = (this.canvas.width - mazeWidth) / 2;
+        const offsetY = (this.canvas.height - mazeHeight) / 2;
+        
+        // Clear canvas
+        this.ctx.fillStyle = '#0a0a0f';
+        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        
+        // Draw grid background
+        this.ctx.fillStyle = '#1a1a25';
+        this.ctx.fillRect(offsetX, offsetY, mazeWidth, mazeHeight);
+        
+        // Draw solution path first (underneath walls)
+        if (solution && solution.length > 0) {
+            this.ctx.beginPath();
+            this.ctx.strokeStyle = 'rgba(245, 158, 11, 0.4)';
+            this.ctx.lineWidth = this.cellSize * 0.6;
+            this.ctx.lineCap = 'round';
+            this.ctx.lineJoin = 'round';
+            
+            const firstCell = solution[0];
+            this.ctx.moveTo(
+                offsetX + firstCell.x * this.cellSize + this.cellSize / 2,
+                offsetY + (height - 1 - firstCell.y) * this.cellSize + this.cellSize / 2
+            );
+            
+            for (let i = 1; i < solution.length; i++) {
+                const cell = solution[i];
+                this.ctx.lineTo(
+                    offsetX + cell.x * this.cellSize + this.cellSize / 2,
+                    offsetY + (height - 1 - cell.y) * this.cellSize + this.cellSize / 2
+                );
+            }
+            this.ctx.stroke();
+        }
+        
+        // Draw walls
+        this.ctx.strokeStyle = '#f4f4f5';
+        this.ctx.lineWidth = this.wallWidth;
+        this.ctx.lineCap = 'round';
+        
+        for (let x = 0; x < width; x++) {
+            for (let y = 0; y < height; y++) {
+                const cell = maze[x][y];
+                const px = offsetX + x * this.cellSize;
+                const py = offsetY + (height - 1 - y) * this.cellSize;
+                
+                // Draw walls where there's no connection
+                // Top wall
+                if (!(cell & FLAGU)) {
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(px, py);
+                    this.ctx.lineTo(px + this.cellSize, py);
+                    this.ctx.stroke();
+                }
+                // Bottom wall  
+                if (!(cell & FLAGD)) {
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(px, py + this.cellSize);
+                    this.ctx.lineTo(px + this.cellSize, py + this.cellSize);
+                    this.ctx.stroke();
+                }
+                // Left wall
+                if (!(cell & FLAGL)) {
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(px, py);
+                    this.ctx.lineTo(px, py + this.cellSize);
+                    this.ctx.stroke();
+                }
+                // Right wall
+                if (!(cell & FLAGR)) {
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(px + this.cellSize, py);
+                    this.ctx.lineTo(px + this.cellSize, py + this.cellSize);
+                    this.ctx.stroke();
+                }
+            }
+        }
+        
+        // Draw entry point (top)
+        if (entry) {
+            const ex = offsetX + entry.x * this.cellSize + this.cellSize / 2;
+            const ey = offsetY - 10;
+            
+            this.ctx.fillStyle = '#10b981';
+            this.ctx.beginPath();
+            this.ctx.moveTo(ex, ey);
+            this.ctx.lineTo(ex - 8, ey - 12);
+            this.ctx.lineTo(ex + 8, ey - 12);
+            this.ctx.closePath();
+            this.ctx.fill();
+            
+            this.ctx.fillStyle = '#10b981';
+            this.ctx.font = 'bold 12px Outfit';
+            this.ctx.textAlign = 'center';
+            this.ctx.fillText('ENTRY', ex, ey - 16);
+        }
+        
+        // Draw exit point (bottom)
+        if (exit) {
+            const ex = offsetX + exit.x * this.cellSize + this.cellSize / 2;
+            const ey = offsetY + mazeHeight + 10;
+            
+            this.ctx.fillStyle = '#ef4444';
+            this.ctx.beginPath();
+            this.ctx.moveTo(ex, ey);
+            this.ctx.lineTo(ex - 8, ey + 12);
+            this.ctx.lineTo(ex + 8, ey + 12);
+            this.ctx.closePath();
+            this.ctx.fill();
+            
+            this.ctx.fillStyle = '#ef4444';
+            this.ctx.font = 'bold 12px Outfit';
+            this.ctx.textAlign = 'center';
+            this.ctx.fillText('EXIT', ex, ey + 26);
+        }
+        
+        // Draw wrap indicator (cylinder visualization hint)
+        this.ctx.strokeStyle = 'rgba(6, 182, 212, 0.5)';
+        this.ctx.setLineDash([5, 5]);
+        this.ctx.lineWidth = 2;
+        
+        // Left edge connects to right edge
+        this.ctx.beginPath();
+        this.ctx.moveTo(offsetX - 5, offsetY);
+        this.ctx.lineTo(offsetX - 5, offsetY + mazeHeight);
+        this.ctx.stroke();
+        
+        this.ctx.beginPath();
+        this.ctx.moveTo(offsetX + mazeWidth + 5, offsetY);
+        this.ctx.lineTo(offsetX + mazeWidth + 5, offsetY + mazeHeight);
+        this.ctx.stroke();
+        
+        this.ctx.setLineDash([]);
+        
+        // Add wrap label
+        this.ctx.fillStyle = 'rgba(6, 182, 212, 0.7)';
+        this.ctx.font = '10px JetBrains Mono';
+        this.ctx.textAlign = 'center';
+        this.ctx.fillText('← wraps →', offsetX + mazeWidth / 2, offsetY + mazeHeight + 50);
+    }
+}
+
+function getPreviewParams() {
+    const form = document.getElementById('puzzleForm');
+    
+    const height = parseFloat(form.querySelector('#h')?.value) || 50;
+    const diameter = parseFloat(form.querySelector('#c')?.value) || 30;
+    const mazeStep = parseFloat(form.querySelector('#z')?.value) || 3;
+    const baseHeight = parseFloat(form.querySelector('#b')?.value) || 10;
+    const mazeMargin = parseFloat(form.querySelector('#M')?.value) || 1;
+    const complexity = parseInt(form.querySelector('#X')?.value) || 5;
+    const helix = parseInt(form.querySelector('#H')?.value) || 2;
+    const nubs = parseInt(form.querySelector('#N')?.value) || 2;
+    
+    // Calculate maze dimensions (matching C code formula)
+    const basethickness = 1.6;
+    const wallthickness = 1.2;
+    const mazethickness = 2;
+    
+    // Calculate radius and circumference for width
+    const r1 = diameter / 2 + wallthickness + mazethickness;
+    const circumference = r1 * 2 * Math.PI;
+    const mazeWidth = Math.floor(circumference / mazeStep / nubs) * nubs;
+    
+    // Calculate height
+    const availableHeight = height - baseHeight - basethickness - mazeMargin;
+    const mazeHeight = Math.max(3, Math.floor(availableHeight / mazeStep) + helix + 2);
+    
+    return {
+        width: Math.max(6, mazeWidth),
+        height: Math.max(4, mazeHeight),
+        helix: helix,
+        complexity: complexity,
+        nubs: nubs
+    };
+}
+
+function showMazePreview() {
+    const modal = document.getElementById('previewModal');
+    const canvas = document.getElementById('mazeCanvas');
+    
+    if (!modal || !canvas) return;
+    
+    // Get parameters from form
+    const params = getPreviewParams();
+    
+    // Generate maze
+    const generator = new MazeGenerator(params);
+    const mazeData = generator.generate();
+    
+    // Size canvas
+    canvas.width = 600;
+    canvas.height = 400;
+    
+    // Render maze
+    const renderer = new MazeRenderer(canvas);
+    renderer.render(mazeData);
+    
+    // Update stats
+    const statsEl = document.getElementById('mazeStats');
+    if (statsEl) {
+        const difficulty = mazeData.pathLength < 15 ? 'Easy' : 
+                          mazeData.pathLength < 30 ? 'Medium' :
+                          mazeData.pathLength < 50 ? 'Hard' : 'Extreme';
+        const difficultyColor = mazeData.pathLength < 15 ? '#10b981' : 
+                               mazeData.pathLength < 30 ? '#f59e0b' :
+                               mazeData.pathLength < 50 ? '#f97316' : '#ef4444';
+        
+        statsEl.innerHTML = `
+            <div class="stat">
+                <span class="stat-icon">📏</span>
+                <span class="stat-label">Path Length</span>
+                <span class="stat-value">${mazeData.pathLength} steps</span>
+            </div>
+            <div class="stat">
+                <span class="stat-icon">🚧</span>
+                <span class="stat-label">Dead Ends</span>
+                <span class="stat-value">${mazeData.deadEnds}</span>
+            </div>
+            <div class="stat">
+                <span class="stat-icon">⚡</span>
+                <span class="stat-label">Difficulty</span>
+                <span class="stat-value" style="color: ${difficultyColor}">${difficulty}</span>
+            </div>
+            <div class="stat">
+                <span class="stat-icon">📐</span>
+                <span class="stat-label">Grid Size</span>
+                <span class="stat-value">${params.width} × ${params.height}</span>
+            </div>
+        `;
+    }
+    
+    // Show modal
+    modal.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+}
+
+function closePreviewModal() {
+    const modal = document.getElementById('previewModal');
+    if (modal) {
+        modal.style.display = 'none';
+        document.body.style.overflow = '';
+    }
+}
+
+function regenerateMaze() {
+    showMazePreview();
+}
+
+// Expose to global scope
+window.showMazePreview = showMazePreview;
+window.closePreviewModal = closePreviewModal;
+window.regenerateMaze = regenerateMaze;
+
+// ========================================
 // SERVER HEALTH CHECK
 // ========================================
 
