@@ -351,9 +351,8 @@ class PuzzleBoxHandler(SimpleHTTPRequestHandler):
         
         # Build each part as complete OpenSCAD
         raw_parts = []
-        total_parts = len(part_ranges)
         
-        for part_idx, (start_idx, end_idx, part_name) in enumerate(part_ranges):
+        for start_idx, end_idx, part_name in part_ranges:
             part_lines = lines[start_idx:end_idx]
             
             # Generate share ID from params
@@ -384,11 +383,9 @@ class PuzzleBoxHandler(SimpleHTTPRequestHandler):
                 code_lines.append("")
             
             # Add scale wrapper and part content
-            # The LAST part from generator is Outer Box (generator outputs inner→outer)
-            is_outer_box_with_watermark = add_physical_watermark and part_idx == total_parts - 1
-            
-            if is_outer_box_with_watermark:
-                # Wrap in difference to subtract the text from Outer Box base
+            # Add RC watermark cutout to ALL parts when watermark is enabled
+            if add_physical_watermark:
+                # Wrap in difference to subtract the text from base
                 code_lines.append("scale(0.001) difference() {")
                 code_lines.append(f"  _pb=[82,67,{timestamp % 100000}]; // config")
                 code_lines.append("  union() {")
@@ -410,10 +407,10 @@ class PuzzleBoxHandler(SimpleHTTPRequestHandler):
                         continue
                 code_lines.append(f"{indent}{stripped}")
             
-            if is_outer_box_with_watermark:
+            if add_physical_watermark:
                 # Close union, add the text cutout, close difference and scale
                 code_lines.append("  }")  # Close union
-                code_lines.append("  // RC watermark cutout - cuts through Outer Box base, visible in slicer")
+                code_lines.append("  // RC watermark cutout - cuts through base, visible in slicer")
                 code_lines.append("  translate([0,0,-1])linear_extrude(height=2000,convexity=2)")
                 code_lines.append("    text(\"RC\",size=8000,font=\"Liberation Sans:style=Bold\",halign=\"center\",valign=\"center\");")
                 code_lines.append("}")  # Close difference and scale
