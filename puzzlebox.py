@@ -281,14 +281,7 @@ class PuzzleBoxHandler(SimpleHTTPRequestHandler):
                 result_lines.append(f"_pb=[82,67,{timestamp % 100000}]; // config")
                 watermark_added = True
             
-            # Add physical watermark (hidden inside base, visible only in slicer)
-            # Z=170 starts after first layer for all common heights (0.16, 0.2, 0.24mm)
-            # Height=500 (0.5mm) ensures it spans 2-4 layers regardless of layer height
-            if add_physical and not physical_watermark_added and '// Part 1' in line:
-                result_lines.append("// Hidden watermark - visible only in slicer layers 2-4")
-                result_lines.append("translate([0,0,170])linear_extrude(height=500,convexity=2)")
-                result_lines.append("  text(\"RC\",size=2000,font=\"Liberation Sans:style=Bold\",halign=\"center\",valign=\"center\");")
-                physical_watermark_added = True
+            # Physical watermark is handled in extract_individual_parts for cleaner difference() wrapping
         
         return '\n'.join(result_lines)
     
@@ -388,19 +381,20 @@ class PuzzleBoxHandler(SimpleHTTPRequestHandler):
             if module_lines:
                 code_lines.append("")
             
-            # Add scale wrapper and part content with hidden watermark
-            code_lines.append("scale(0.001) {")
-            # Hidden watermark: 82=R, 67=C (ASCII for initials), plus timestamp fragment
-            code_lines.append(f"  _pb=[82,67,{timestamp % 100000}]; // config")
+            # Add scale wrapper and part content
+            # For Inner Core with watermark, use difference() to cut text into solid base
+            is_inner_core_with_watermark = add_physical_watermark and part_name == "Part 1"
             
-            # Add physical watermark to Inner Core (the innermost part)
-            # This is tiny text inside the base, visible only in slicer
-            # Z=170 starts after first layer for all common heights (0.16, 0.2, 0.24mm)
-            # Height=500 (0.5mm) ensures it spans 2-4 layers regardless of layer height
-            if add_physical_watermark and part_name == "Part 1":  # Part 1 is Inner Core (before reversal)
-                code_lines.append("  // Hidden watermark - visible only in slicer layers 2-4")
-                code_lines.append("  translate([0,0,170])linear_extrude(height=500,convexity=2)")
-                code_lines.append("    text(\"RC\",size=2000,font=\"Liberation Sans:style=Bold\",halign=\"center\",valign=\"center\");")
+            if is_inner_core_with_watermark:
+                # Wrap in difference to subtract the text
+                code_lines.append("scale(0.001) difference() {")
+                code_lines.append(f"  _pb=[82,67,{timestamp % 100000}]; // config")
+                code_lines.append("  union() {")
+                indent = "    "
+            else:
+                code_lines.append("scale(0.001) {")
+                code_lines.append(f"  _pb=[82,67,{timestamp % 100000}]; // config")
+                indent = "  "
             
             for line in part_lines:
                 stripped = line.strip()
@@ -412,9 +406,17 @@ class PuzzleBoxHandler(SimpleHTTPRequestHandler):
                     nums = re.findall(r'\d+', stripped[:50])
                     if nums and int(nums[0]) > 10000:
                         continue
-                code_lines.append(f"  {stripped}")
+                code_lines.append(f"{indent}{stripped}")
             
-            code_lines.append("}")
+            if is_inner_core_with_watermark:
+                # Close union, add the text cutout, close difference and scale
+                code_lines.append("  }")  # Close union
+                code_lines.append("  // RC watermark cutout - visible in slicer layers 2-4")
+                code_lines.append("  translate([0,0,200])linear_extrude(height=600,convexity=2)")
+                code_lines.append("    text(\"RC\",size=3000,font=\"Liberation Sans:style=Bold\",halign=\"center\",valign=\"center\");")
+                code_lines.append("}")  # Close difference and scale
+            else:
+                code_lines.append("}")  # Close scale
             
             raw_parts.append({
                 "original_name": part_name,
