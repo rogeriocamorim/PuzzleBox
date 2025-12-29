@@ -314,6 +314,30 @@ class MazeRenderer {
         const offsetX = (this.canvas.width - mazeWidth) / 2;
         const offsetY = (this.canvas.height - mazeHeight) / 2;
         
+        // Calculate rotation offset to center the solution path
+        // Find the average X position of the solution and rotate to center it
+        let rotationOffset = 0;
+        if (solution && solution.length > 0) {
+            // Find min and max X of solution path
+            let minX = solution[0].x;
+            let maxX = solution[0].x;
+            for (const cell of solution) {
+                if (cell.x < minX) minX = cell.x;
+                if (cell.x > maxX) maxX = cell.x;
+            }
+            // Center the solution path
+            const solutionCenterX = (minX + maxX) / 2;
+            const displayCenterX = width / 2;
+            rotationOffset = Math.round(displayCenterX - solutionCenterX);
+        }
+        
+        // Helper to apply rotation offset to X coordinate
+        const rotateX = (x) => {
+            let newX = (x + rotationOffset) % width;
+            if (newX < 0) newX += width;
+            return newX;
+        };
+        
         // Clear canvas
         this.ctx.fillStyle = '#0a0a0f';
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
@@ -324,26 +348,38 @@ class MazeRenderer {
         
         // Draw solution path first (underneath walls)
         if (solution && solution.length > 0) {
-            this.ctx.beginPath();
             this.ctx.strokeStyle = 'rgba(245, 158, 11, 0.4)';
             this.ctx.lineWidth = this.cellSize * 0.6;
             this.ctx.lineCap = 'round';
             this.ctx.lineJoin = 'round';
             
-            const firstCell = solution[0];
-            this.ctx.moveTo(
-                offsetX + firstCell.x * this.cellSize + this.cellSize / 2,
-                offsetY + (height - 1 - firstCell.y) * this.cellSize + this.cellSize / 2
-            );
-            
+            // Draw path segments, handling wrapping properly
+            let prevCell = solution[0];
             for (let i = 1; i < solution.length; i++) {
                 const cell = solution[i];
-                this.ctx.lineTo(
-                    offsetX + cell.x * this.cellSize + this.cellSize / 2,
-                    offsetY + (height - 1 - cell.y) * this.cellSize + this.cellSize / 2
-                );
+                const prevRX = rotateX(prevCell.x);
+                const currRX = rotateX(cell.x);
+                
+                // Check if this segment wraps around the edge
+                const dx = Math.abs(currRX - prevRX);
+                if (dx > width / 2) {
+                    // Path wraps - don't draw a line across the screen
+                    // Just skip this segment (it will appear at edges)
+                } else {
+                    // Normal segment - draw it
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(
+                        offsetX + prevRX * this.cellSize + this.cellSize / 2,
+                        offsetY + (height - 1 - prevCell.y) * this.cellSize + this.cellSize / 2
+                    );
+                    this.ctx.lineTo(
+                        offsetX + currRX * this.cellSize + this.cellSize / 2,
+                        offsetY + (height - 1 - cell.y) * this.cellSize + this.cellSize / 2
+                    );
+                    this.ctx.stroke();
+                }
+                prevCell = cell;
             }
-            this.ctx.stroke();
         }
         
         // Draw walls
@@ -351,10 +387,14 @@ class MazeRenderer {
         this.ctx.lineWidth = this.wallWidth;
         this.ctx.lineCap = 'round';
         
-        for (let x = 0; x < width; x++) {
+        for (let displayX = 0; displayX < width; displayX++) {
+            // Map display position back to maze position
+            let mazeX = (displayX - rotationOffset) % width;
+            if (mazeX < 0) mazeX += width;
+            
             for (let y = 0; y < height; y++) {
-                const cell = maze[x][y];
-                const px = offsetX + x * this.cellSize;
+                const cell = maze[mazeX][y];
+                const px = offsetX + displayX * this.cellSize;
                 const py = offsetY + (height - 1 - y) * this.cellSize;
                 
                 // Draw walls where there's no connection
@@ -389,9 +429,16 @@ class MazeRenderer {
             }
         }
         
-        // Draw entry point (top)
+        // Store rotation offset for entry/exit markers
+        this.rotationOffset = rotationOffset;
+        this.mazeWidth = width;
+        
+        // Draw entry point (top) - apply rotation offset
         if (entry) {
-            const ex = offsetX + entry.x * this.cellSize + this.cellSize / 2;
+            let rotatedEntryX = (entry.x + rotationOffset) % width;
+            if (rotatedEntryX < 0) rotatedEntryX += width;
+            
+            const ex = offsetX + rotatedEntryX * this.cellSize + this.cellSize / 2;
             const ey = offsetY - 10;
             
             this.ctx.fillStyle = '#10b981';
@@ -408,9 +455,12 @@ class MazeRenderer {
             this.ctx.fillText('ENTRY', ex, ey - 16);
         }
         
-        // Draw exit point (bottom)
+        // Draw exit point (bottom) - apply rotation offset
         if (exit) {
-            const ex = offsetX + exit.x * this.cellSize + this.cellSize / 2;
+            let rotatedExitX = (exit.x + rotationOffset) % width;
+            if (rotatedExitX < 0) rotatedExitX += width;
+            
+            const ex = offsetX + rotatedExitX * this.cellSize + this.cellSize / 2;
             const ey = offsetY + mazeHeight + 10;
             
             this.ctx.fillStyle = '#ef4444';
