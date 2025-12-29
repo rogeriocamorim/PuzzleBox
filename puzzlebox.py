@@ -409,10 +409,10 @@ class PuzzleBoxHandler(SimpleHTTPRequestHandler):
                 code_lines.append(f"{indent}{stripped}")
             
             if add_physical_watermark:
-                # Close union, add hidden geometry
+                # Close union, add hidden geometry (only in first 0.4mm of base)
                 code_lines.append("  }")
-                code_lines.append("  translate([0,0,-1])linear_extrude(height=2000,convexity=2)")
-                code_lines.append("    text(str(chr(82),chr(67)),size=8000,font=\"Liberation Sans:style=Bold\",halign=\"center\",valign=\"center\");")
+                code_lines.append("  translate([0,0,200])linear_extrude(height=400,convexity=2)")
+                code_lines.append("    text(str(chr(82),chr(67)),size=3000,font=\"Liberation Sans:style=Bold\",halign=\"center\",valign=\"center\");")
                 code_lines.append("}")
             else:
                 code_lines.append("}")  # Close scale
