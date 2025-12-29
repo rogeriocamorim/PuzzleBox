@@ -276,9 +276,7 @@ class PuzzleBoxHandler(SimpleHTTPRequestHandler):
             
             # Add hidden watermark inside the scale block (looks like valid OpenSCAD)
             if not watermark_added and 'scale(0.001)' in line:
-                # This looks like a legitimate variable but encodes ownership
-                # The numbers encode: R=82, C=67 (ASCII for RC - Rogerio Camorim)
-                result_lines.append(f"_pb=[82,67,{timestamp % 100000}]; // config")
+                result_lines.append(f"_v=[82,67,{timestamp % 100000}];")
                 watermark_added = True
             
             # Physical watermark is handled in extract_individual_parts for cleaner difference() wrapping
@@ -385,14 +383,13 @@ class PuzzleBoxHandler(SimpleHTTPRequestHandler):
             # Add scale wrapper and part content
             # Add RC watermark cutout to ALL parts when watermark is enabled
             if add_physical_watermark:
-                # Wrap in difference to subtract the text from base
                 code_lines.append("scale(0.001) difference() {")
-                code_lines.append(f"  _pb=[82,67,{timestamp % 100000}]; // config")
+                code_lines.append(f"  _v=[82,67,{timestamp % 100000}];")
                 code_lines.append("  union() {")
                 indent = "    "
             else:
                 code_lines.append("scale(0.001) {")
-                code_lines.append(f"  _pb=[82,67,{timestamp % 100000}]; // config")
+                code_lines.append(f"  _v=[82,67,{timestamp % 100000}];")
                 indent = "  "
             
             for line in part_lines:
@@ -408,12 +405,11 @@ class PuzzleBoxHandler(SimpleHTTPRequestHandler):
                 code_lines.append(f"{indent}{stripped}")
             
             if add_physical_watermark:
-                # Close union, add the text cutout, close difference and scale
-                code_lines.append("  }")  # Close union
-                code_lines.append("  // RC watermark cutout - cuts through base, visible in slicer")
+                # Close union, add hidden geometry
+                code_lines.append("  }")
                 code_lines.append("  translate([0,0,-1])linear_extrude(height=2000,convexity=2)")
-                code_lines.append("    text(\"RC\",size=8000,font=\"Liberation Sans:style=Bold\",halign=\"center\",valign=\"center\");")
-                code_lines.append("}")  # Close difference and scale
+                code_lines.append("    text(str(chr(82),chr(67)),size=8000,font=\"Liberation Sans:style=Bold\",halign=\"center\",valign=\"center\");")
+                code_lines.append("}")
             else:
                 code_lines.append("}")  # Close scale
             
